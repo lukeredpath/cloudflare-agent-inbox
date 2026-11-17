@@ -167,7 +167,7 @@ flagged with `transform_error`, visible in `lanes get` and to agents.
 It prints metadata only. A message body is printed only with an explicit
 `--show-body`, intended for a person reading it themselves. Untrusted fields are
 stripped of terminal escape sequences and invisible characters before printing.
-`agents mint` refuses to print a token unless it has an interactive terminal.
+`agents create` refuses to print a token unless it has an interactive terminal.
 
 ## Limits of this design
 

@@ -257,10 +257,10 @@ export async function lanesRotate(ctx: CliContext, slug: string, yes: boolean | 
 
 // ---- agents
 
-export async function agentsMint(ctx: CliContext, name: string, json: boolean): Promise<Result> {
+export async function agentsCreate(ctx: CliContext, name: string, json: boolean): Promise<Result> {
   // Refuse anywhere the token could be captured by a tool or a transcript.
   if (json || !ctx.io.stdoutIsTTY || !ctx.io.stdinIsTTY) {
-    throw new CliError("Minting prints a secret. Run it yourself in an interactive terminal, without --json or piped output.");
+    throw new CliError("Creating an agent prints a secret. Run it yourself in an interactive terminal, without --json or piped output.");
   }
   if (!AGENT_NAME_PATTERN.test(name)) throw new CliError("Agent names use letters, digits, dot, dash and underscore (max 40)");
   const { agent, token } = await createAgent(ctx.db, name);

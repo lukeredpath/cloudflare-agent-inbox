@@ -258,16 +258,16 @@
 
 <span class="c"># create a lane, then give an agent access to it</span>
 <span class="p">$</span> npm run cli -- lanes create receipts --description "Shop receipts"
-<span class="p">$</span> npm run cli -- agents mint my-agent
+<span class="p">$</span> npm run cli -- agents create my-agent
 <span class="p">$</span> npm run cli -- agents grant my-agent receipts
 <span class="p">$</span> npm run cli -- messages inject-test receipts --text "Total 3.50 GBP"</pre>
       <ol class="steps">
-        <li><span><b>Deploy the Worker</b> from a plain clone with <code>npm run deploy</code>. You don't need a fork.</span></li>
+        <li><span><b>Deploy the Worker</b> from a plain clone with <code>npm run deploy</code>.</span></li>
         <li><span><b>Create a lane.</b> The CLI prints its address; point a mail rule in your mailbox at it.</span></li>
-        <li><span><b>Mint an agent token</b> and grant it the lanes it should see. It's shown once, in a terminal only.</span></li>
+        <li><span><b>Create an agent token</b> and grant it the lanes it should see. It's shown once, in a terminal only.</span></li>
         <li><span><b>Connect your agent</b> to the MCP endpoint with that bearer token.</span></li>
       </ol>
-      <p>The full guide covers DNS, Email Routing and deploy tokens. Allow an hour or two the first time. There's also a prompt you can give an agent to do the mechanical parts, but it hasn't been run end to end yet, so treat a first run as a trial.</p>
+      <p>The full guide covers DNS, Email Routing and deploy tokens. There's also a prompt you can give an agent to do the mechanical parts, but it hasn't been run end to end yet, so treat a first run as a trial.</p>
       <div class="buttons">
         <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Full setup guide</a>
         <a class="btn" href="https://github.com/__REPO__/blob/main/docs/agent-setup.md">Agent-guided setup</a>

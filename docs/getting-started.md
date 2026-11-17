@@ -226,11 +226,11 @@ npm run cli -- lanes get receipts
   output):
 
 ```sh
-npm run cli -- agents mint my-agent       # prints the token once: save it now
+npm run cli -- agents create my-agent       # prints the token once: save it now
 npm run cli -- agents grant my-agent receipts
 ```
 
-Only a hash is stored, so a lost token means minting a new one
+Only a hash is stored, so a lost token means creating a new one
 (`agents revoke my-agent --yes` kills the old one).
 
 - [ ] Smoke-test the MCP with `curl` (replace the host and token):
@@ -321,7 +321,7 @@ strict about who can get mail in and what an agent can do, not by judging conten
   reads email the ability to spend money, send messages, or browse the web unless
   you are comfortable with an attacker steering it.
 - [ ] Grant each agent only the lanes it needs.
-- [ ] Mint tokens yourself, in a terminal, and store them in a password manager.
+- [ ] Create tokens yourself, in a terminal, and store them in a password manager.
 - [ ] Never pass `--yes` or `--show-body` from automation.
 - [ ] Put the Cloudflare rule from [security.md](security.md#cloudflare-protections) in
   front of your MCP and share hostnames.

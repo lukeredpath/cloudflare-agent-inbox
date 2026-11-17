@@ -77,8 +77,8 @@ export function buildProgram(ctx: CliContext, emit: (result: c.Result, json: boo
 
   // agents
   const agents = program.command("agents").description("manage agent tokens and what they can read");
-  agents.command("mint <name>").description("create an agent and print its token once (interactive terminals only)")
-    .action(async (name: string, _o: unknown, cmd: Command) => emit(await c.agentsMint(ctx, name, json(cmd)), false));
+  agents.command("create <name>").description("create an agent and print its token once (interactive terminals only)")
+    .action(async (name: string, _o: unknown, cmd: Command) => emit(await c.agentsCreate(ctx, name, json(cmd)), false));
   agents.command("list").description("list agents and their lanes").action(run(() => c.agentsList(ctx)));
   agents.command("grant <agent> <lane>").description("let an agent read a lane").action(run((a: string, l: string) => c.agentsGrant(ctx, a, l)));
   agents.command("ungrant <agent> <lane>").description("stop an agent reading a lane").action(run((a: string, l: string) => c.agentsUngrant(ctx, a, l)));

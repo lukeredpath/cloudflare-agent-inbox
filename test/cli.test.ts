@@ -168,19 +168,19 @@ describe("destructive commands", () => {
 });
 
 describe("agents", () => {
-  it("refuses to mint without an interactive terminal, so tokens cannot be captured", async () => {
-    for (const args of [["agents", "mint", "bot"], ["--json", "agents", "mint", "bot"]]) {
+  it("refuses to create an agent without an interactive terminal, so tokens cannot be captured", async () => {
+    for (const args of [["agents", "create", "bot"], ["--json", "agents", "create", "bot"]]) {
       const r = await cli(args, { tty: false });
       expect(r.code).toBe(1);
       expect(r.err).toContain("interactive terminal");
     }
-    const json = await cli(["--json", "agents", "mint", "bot"], { tty: true });
+    const json = await cli(["--json", "agents", "create", "bot"], { tty: true });
     expect(json.code).toBe(1);
     expect(await getAgentByName(db, "bot")).toBeNull();
   });
 
-  it("mints in a terminal, prints the token once, stores only its hash, and never shows it again", async () => {
-    const r = await cli(["agents", "mint", "bot"], { tty: true });
+  it("creates an agent in a terminal, prints the token once, stores only its hash, and never shows it again", async () => {
+    const r = await cli(["agents", "create", "bot"], { tty: true });
     expect(r.code).toBe(0);
     const token = r.out.match(/aia_[a-z2-7]{52}/)?.[0];
     expect(token).toMatch(AGENT_TOKEN_PATTERN);

@@ -24,7 +24,7 @@ npm run cli -- lanes create statements \
   --unzip-secret LANE_SECRET_STATEMENTS --inner-type application/pdf
 
 # 3. An agent that may read it.
-npm run cli -- agents mint my-agent        # in your own terminal
+npm run cli -- agents create my-agent        # in your own terminal
 npm run cli -- agents grant my-agent statements
 ```
 

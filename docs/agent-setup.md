@@ -21,7 +21,7 @@ agent's transcript.
 | Email Routing: subdomain, subaddressing, the one literal rule | yes, if its Cloudflare access allows | |
 | Create the Cloudflare deploy token and the narrower CLI token | | **you**, so neither enters a transcript |
 | Create lanes, inject a test message, inspect results | yes, with a shell and the token in its environment | |
-| `agents mint`, `secrets set` | | **you**, in your own terminal. Both refuse non-interactive sessions on purpose |
+| `agents create`, `secrets set` | | **you**, in your own terminal. Both refuse non-interactive sessions on purpose |
 | Destructive commands (`lanes delete`, `lanes rotate`, `agents revoke`, `messages delete`) | | you, or confirm each one |
 | Your mail provider's forwarding rule | | **you** |
 | Verify each step | yes | |
@@ -58,7 +58,7 @@ environment, never into committed files.
 HOW YOU MUST WORK
 1. Secrets. Never ask me to paste a secret, token, password or API key into this
    conversation, and never read, print, log, or store one. I create the scoped
-   Cloudflare API token myself, and I run `agents mint` and `secrets set` myself in
+   Cloudflare API token myself, and I run `agents create` and `secrets set` myself in
    my own terminal; tell me the exact command and wait. Those commands refuse to run
    in a non-interactive session on purpose; do not try to work around that.
 2. Ask before changing anything outside this repository. Before any action that
@@ -97,7 +97,7 @@ Work through the guide's steps in order:
  - Step 5: tell me how to create the scoped CLI token and which environment
    variables to export; check that `npm run cli -- lanes list` works.
  - Step 6: create the first lane and inject a test message.
- - Step 7: I mint the agent token myself. You can then run the `curl` check and
+ - Step 7: I create the agent token myself. You can then run the `curl` check and
    confirm only the four expected tools are listed.
  - Step 8: explain which forwarding path (A or B) fits me. For B, add
    `--forwarded-from` to the lane. I create my own mail rule.
@@ -113,5 +113,5 @@ blocked, with what you need). At the end give me a summary of what is configured
 - Check the agent's changes: `git status` should show nothing to commit from setup,
   and `npm run pii-scan -- --history` should be clean.
 - Revoke or narrow any broad Cloudflare access you gave it.
-- Mint a separate token for each agent that will read mail, grant only the lanes it
+- Create a separate token for each agent that will read mail, grant only the lanes it
   needs, and read the safety checklist in [getting-started.md](getting-started.md).

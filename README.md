@@ -79,7 +79,7 @@ export AGENT_INBOX_WORKER_NAME=...        # also the D1 database name
 export AGENT_INBOX_MAIL_HOSTNAME=mail.example.com
 
 npm run cli -- lanes create receipts --description "Shop receipts"
-npm run cli -- agents mint my-agent       # interactive terminals only; prints the token once
+npm run cli -- agents create my-agent       # interactive terminals only; prints the token once
 npm run cli -- agents grant my-agent receipts
 npm run cli -- messages inject-test receipts --text "Total 3.50 GBP"
 ```
@@ -94,7 +94,7 @@ It prints metadata only; message bodies need `messages get <id> --show-body`.
 | Command | Does |
 | --- | --- |
 | `lanes create\|list\|get\|update\|pause\|resume\|delete\|rotate` | manage lanes and their addresses |
-| `agents mint\|list\|grant\|ungrant\|revoke` | manage agent tokens and what they can read |
+| `agents create\|list\|grant\|ungrant\|revoke` | manage agent tokens and what they can read |
 | `secrets set LANE_SECRET_NAME` | set a Worker secret; the value is read from the terminal or stdin |
 | `messages list\|get\|mark-unprocessed\|keep\|delete\|inject-test` | inspect and fix messages |
 | `rejections list` | see what was rejected, and why |
@@ -102,7 +102,7 @@ It prints metadata only; message bodies need `messages get <id> --show-body`.
 Destructive commands (`lanes delete`, `lanes rotate`, `agents revoke`,
 `messages delete`) ask for confirmation, or refuse in a non-interactive
 session unless `--yes` is passed. Automation should not pass `--yes`.
-`agents mint` refuses to run unless it has a terminal, so a token is never
+`agents create` refuses to run unless it has a terminal, so a token is never
 captured by a tool or transcript.
 
 ## Configuration

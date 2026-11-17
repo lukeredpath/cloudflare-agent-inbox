@@ -51,6 +51,6 @@ best-effort fix. There is no bounty programme. Credit is given if you want it.
 The code is only part of the picture. See
 [docs/security.md](docs/security.md#cloudflare-protections) for the Cloudflare rules
 worth putting in front of the Worker, and for the known limits of the design.
-Practical basics: give the CLI a narrow API token, mint agent tokens yourself in a
+Practical basics: give the CLI a narrow API token, create agent tokens yourself in a
 terminal, grant each agent only the lanes it needs, rotate a lane's address if it
 leaks, and keep consuming agents narrowly scoped.
