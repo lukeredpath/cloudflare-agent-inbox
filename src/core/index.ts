@@ -1,4 +1,5 @@
 export * from "./address.ts";
+export * from "./admin.ts";
 export * from "./agents.ts";
 export * from "./db.ts";
 export * from "./encoding.ts";

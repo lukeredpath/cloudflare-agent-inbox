@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "render-config": "node scripts/render-config-cli.ts",
     "pii-scan": "node scripts/pii-scan-cli.ts",
-    "cli": "echo 'The CLI arrives in milestone M6.' && exit 1"
+    "cli": "node src/cli/index.ts"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.8.3",
