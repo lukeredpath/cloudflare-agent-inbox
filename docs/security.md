@@ -13,7 +13,12 @@
   This is mail you compose or forward by hand: your mail provider signs it.
 
   **Path B, forwarded.** Server-side forwarding rules add no signature of their
-  own, so path A can never pass for them. Instead, a *trusted forwarder* (for
+  own, so path A can never pass for them. iCloud Mail is the example this was
+  built for: its forwarding rules leave the message untouched, rewrite the
+  envelope sender to the mailbox owner, and add an ARC set sealed by `icloud.com`
+  recording how the original message authenticated on arrival. Mail you compose
+  or forward by hand in an iCloud-backed mailbox is signed with your domain's
+  DKIM key and passes path A, which is why only the automatic rules need path B. Instead, a *trusted forwarder* (for
   example your mailbox provider) seals an ARC set recording how the original
   message authenticated when it arrived. Path B accepts a message when all of
   these hold:
