@@ -5,6 +5,10 @@ account that receives the emails you forward, files them into lanes, and lets an
 agent read the lanes you grant it. Allow an hour or two the first time, most of
 it waiting on DNS and clicking through dashboards.
 
+Prefer to have an agent do the mechanical parts? See
+[agent-setup.md](agent-setup.md): a prompt you can paste into an agent, and what
+it can and cannot do for you.
+
 Tick the boxes as you go. Steps marked **Verify** are checks that this guide
 cannot do for you.
 

@@ -51,7 +51,8 @@ agent-inbox CLI (your machine) ─► Cloudflare API: D1 and Workers secrets
   `create_share_link` and `mark_processed`. Body text and other third-party
   fields come back under names starting `untrusted`.
 
-**New here?** Follow [docs/getting-started.md](docs/getting-started.md).
+**New here?** Follow [docs/getting-started.md](docs/getting-started.md), or
+paste the [agent-guided setup prompt](docs/agent-setup.md) into an agent.
 
 See [docs/security.md](docs/security.md) for the threat model,
 [docs/lanes.md](docs/lanes.md) for lane recipes and
