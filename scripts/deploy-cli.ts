@@ -1,8 +1,10 @@
 import { spawnSync } from "node:child_process";
+import { loadEnvFiles } from "../src/cli/env.ts";
 import { parseDatabaseList, planDeploy, type Step } from "./deploy.ts";
 
 // Deploys from this checkout, with no GitHub or Workers Builds involved:
 // render the config from AGENT_INBOX_* variables, then migrate and deploy in the right order.
+loadEnvFiles(".env.deploy", ".env");
 const name = process.env.AGENT_INBOX_WORKER_NAME;
 if (!name) {
   console.error("Missing environment variable: AGENT_INBOX_WORKER_NAME (see docs/deploy.md)");
