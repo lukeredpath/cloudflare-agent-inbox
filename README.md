@@ -58,8 +58,8 @@ agent-inbox CLI (your machine) ─► Cloudflare API: D1 and Workers secrets
   tricks, not every one), zero-width and bidi characters are
   removed, text is NFKC-normalised, links become `text (domain)`.
 - **Agents** get a bearer token and four tools: `list_messages`, `get_message`,
-  `create_share_link` and `mark_processed`. Body text and other third-party
-  fields come back under names starting `untrusted`.
+  `create_share_link` and `mark_processed`. `list_messages` takes the lane name, which the agent has to be told. Body text and
+  other third-party fields come back under names starting `untrusted`.
 
 **New here?** Follow [docs/getting-started.md](docs/getting-started.md), or
 paste the [agent-guided setup prompt](docs/agent-setup.md) into an agent.

@@ -247,8 +247,10 @@ You should see four tools: `list_messages`, `get_message`, `create_share_link`,
 `mark_processed`. Without a valid token you get `401`.
 
 - [ ] Connect your agent: Streamable HTTP, URL `https://mcp.example.com/mcp/agent`,
-  header `Authorization: Bearer <token>`. Ask it to list messages; it should see
-  your test message, with `is_test: true`.
+  header `Authorization: Bearer <token>`. Tell it the lane name (`receipts`) and ask it to
+  list that lane's messages; it should see your test message, with `is_test: true`.
+  `list_messages` requires a lane, and there is no tool that lists lanes: an agent can
+  only read a lane whose name you gave it, so put the name in its prompt.
 
 **Before you let an agent read real mail, read the "Safety" section below.**
 

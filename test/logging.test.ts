@@ -113,7 +113,7 @@ describe("share and MCP logging", () => {
 
   it("logs each tool call with the agent id and outcome, and nothing from the request", async () => {
     const agent = await agentWith(db, "reader", [lane]);
-    await callTool(agent.token, "list_messages");
+    await callTool(agent.token, "list_messages", { lane: lane.slug });
     await callTool(agent.token, "get_message", { id: "nope" });
     expect(events("mcp").map((l) => [l.tool, l.outcome, l.agent])).toEqual([
       ["list_messages", "ok", agent.id],

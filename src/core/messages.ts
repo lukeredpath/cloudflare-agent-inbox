@@ -102,6 +102,15 @@ const clampLimit = (limit: number | undefined) => Math.max(1, Math.min(limit ?? 
 
 const AGENT_SCOPE = "m.deleted_at IS NULL AND m.lane_id IN (SELECT lane_id FROM agent_lanes WHERE agent_id = ?)";
 
+/** Whether the agent holds a grant on the lane. Says nothing about whether the lane exists otherwise. */
+export async function agentHasLane(db: Db, agentId: string, laneSlug: string): Promise<boolean> {
+  const row = await db.first<{ one: number }>(
+    "SELECT 1 AS one FROM agent_lanes al JOIN lanes l ON l.id = al.lane_id WHERE al.agent_id = ? AND l.slug = ?",
+    [agentId, laneSlug],
+  );
+  return row !== null;
+}
+
 export async function listMessagesForAgent(
   db: Db,
   agentId: string,

@@ -140,6 +140,10 @@ Things to know:
 
 ## Lanes and agents
 
+- `list_messages` requires a lane name and nothing lists lanes, so an agent that shares a
+  connection with others only reaches the lanes it was told about. This guards against
+  accidents, not guessing: slugs are guessable, and the grant below is what enforces access.
+  A lane that is not granted and one that does not exist get the same refusal.
 - Lane scope is enforced in SQL on every agent call. A message or attachment
   outside the agent's grants is "not found".
 - Agent tokens are 256 random bits, stored only as SHA-256 hashes, and revoked

@@ -73,7 +73,7 @@ describe("tools", () => {
   });
 
   it("list_messages returns metadata for granted lanes only, with the subject marked untrusted", async () => {
-    const { data } = await callTool(token, "list_messages");
+    const { data } = await callTool(token, "list_messages", { lane: "receipts" });
     expect(data.messages).toHaveLength(1);
     expect(data.messages[0]).toMatchObject({
       id: "m-receipt",
@@ -88,8 +88,21 @@ describe("tools", () => {
     expect(JSON.stringify(data)).not.toContain("Order total");
   });
 
-  it("an agent cannot see another lane by naming it", async () => {
-    const { data } = await callTool(token, "list_messages", { lane: "invoices", unprocessed_only: false });
+  it("list_messages needs a lane, and a lane that is not granted looks the same as one that does not exist", async () => {
+    const missing = await callTool(token, "list_messages");
+    expect(missing.isError).toBe(true);
+    const ungranted = await callTool(token, "list_messages", { lane: "invoices", unprocessed_only: false });
+    const unknown = await callTool(token, "list_messages", { lane: "no-such-lane", unprocessed_only: false });
+    expect(ungranted.isError).toBe(true);
+    expect(ungranted.text).toMatch(/No lane by that name is available to you/);
+    expect(unknown.text).toBe(ungranted.text);
+    expect(ungranted.text).not.toMatch(/receipts|invoices/);
+  });
+
+  it("a granted lane with nothing unprocessed is an empty list, not an error", async () => {
+    await callTool(token, "mark_processed", { id: "m-receipt" });
+    const { data, isError } = await callTool(token, "list_messages", { lane: "receipts" });
+    expect(isError).toBeFalsy();
     expect(data.messages).toEqual([]);
   });
 
@@ -127,15 +140,15 @@ describe("tools", () => {
 
   it("mark_processed records the agent, hides the message by default, and keeps it listable", async () => {
     expect((await callTool(token, "mark_processed", { id: "m-receipt", note: "expensed" })).data).toEqual({ id: "m-receipt", processed: true });
-    expect((await callTool(token, "list_messages")).data.messages).toEqual([]);
-    const all = (await callTool(token, "list_messages", { unprocessed_only: false })).data.messages;
+    expect((await callTool(token, "list_messages", { lane: "receipts" })).data.messages).toEqual([]);
+    const all = (await callTool(token, "list_messages", { lane: "receipts", unprocessed_only: false })).data.messages;
     expect(all).toHaveLength(1);
     const full = (await callTool(token, "get_message", { id: "m-receipt" })).data;
     expect(full).toMatchObject({ processed_by: "reader", processed_note: "expensed" });
   });
 
   it("validates arguments", async () => {
-    expect((await callTool(token, "list_messages", { limit: 1000 })).isError).toBe(true);
+    expect((await callTool(token, "list_messages", { lane: "receipts", limit: 1000 })).isError).toBe(true);
     expect((await callTool(token, "mark_processed", { id: "m-receipt", note: "x".repeat(501) })).isError).toBe(true);
     expect((await callTool(token, "create_share_link", { attachment_id: "a-receipt", ttl_minutes: 61 })).isError).toBe(true);
   });
