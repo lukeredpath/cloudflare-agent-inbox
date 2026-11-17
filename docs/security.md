@@ -18,10 +18,11 @@
   envelope sender to the mailbox owner, and add an ARC set sealed by `icloud.com`
   recording how the original message authenticated on arrival. Mail you compose
   or forward by hand in an iCloud-backed mailbox is signed with your domain's
-  DKIM key and passes path A, which is why only the automatic rules need path B. Instead, a *trusted forwarder* (for
-  example your mailbox provider) seals an ARC set recording how the original
-  message authenticated when it arrived. Path B accepts a message when all of
-  these hold:
+  DKIM key and passes path A, which is why only the automatic rules need path B.
+
+  In general, path B relies on a *trusted forwarder* (for example your mailbox
+  provider) that seals an ARC set recording how the original message
+  authenticated when it arrived. It accepts a message when all of these hold:
 
   1. Cloudflare reports `arc=pass`, which covers the whole chain, including the
      forwarder's recorded results. The chain's cryptography is not re-checked here.
