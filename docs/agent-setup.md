@@ -16,9 +16,10 @@ agent's transcript.
 | --- | --- | --- |
 | Clone, install, run tests | yes, with a shell | |
 | Choose hostnames, allowed senders | | decide |
-| Create the Worker, connect your GitHub repo | partly: build variables and settings, if its Cloudflare access allows | authorise the GitHub connection in the dashboard |
+| Deploy (`npm run deploy`) | yes, with a shell, once you have put your settings in the environment | create the deploy token, and fill in the settings yourself |
+| Optional: Workers Builds from your own copy | partly | authorise the GitHub connection in the dashboard |
 | Email Routing: subdomain, subaddressing, the one literal rule | yes, if its Cloudflare access allows | |
-| Create the scoped Cloudflare API token for the CLI | | **you**, so it never enters a transcript |
+| Create the Cloudflare deploy token and the narrower CLI token | | **you**, so neither enters a transcript |
 | Create lanes, inject a test message, inspect results | yes, with a shell and the token in its environment | |
 | `agents mint`, `secrets set` | | **you**, in your own terminal. Both refuse non-interactive sessions on purpose |
 | Destructive commands (`lanes delete`, `lanes rotate`, `agents revoke`, `messages delete`) | | you, or confirm each one |
@@ -86,9 +87,10 @@ WHAT TO DO
 Work through the guide's steps in order:
  - Step 1: get the code, run `npm test` and `npm run typecheck`, enable the hooks.
  - Step 2: confirm the hostnames with me.
- - Step 3: Worker and build variables. Do the parts you can; for connecting the
-   GitHub repo, tell me exactly what to click. Remember the first deploy uses
-   `npx wrangler deploy` and later ones `npm run deploy`.
+ - Step 3: deploy from this checkout with `npm run deploy` (option A). I create the
+   deploy token myself and put the settings in my environment or a git-ignored
+   .env; tell me what to set, never ask me to paste values. Explain the
+   "Deploy plan" the script prints. Only discuss Workers Builds (option B) if I ask.
  - Step 4: Email Routing: the subdomain, subaddressing, and the single literal rule
    `inbox@<mail hostname>` to the Worker. Then run the guide's subaddressing
    verification and tell me the real result.

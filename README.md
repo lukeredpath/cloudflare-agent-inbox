@@ -97,8 +97,10 @@ captured by a tool or transcript.
 ## Configuration
 
 Deployment values (hostnames, allowed senders, DKIM domains) are never
-committed. `wrangler.example.jsonc` is a template; the real config is rendered
-at build time from build variables. See [docs/deploy.md](docs/deploy.md).
+committed. `wrangler.example.jsonc` is a template; the real config is rendered at
+deploy time from environment variables (see `.env.example`). You deploy with
+`npm run deploy` from a clone, with no fork needed; Workers Builds is an optional
+alternative. See [docs/deploy.md](docs/deploy.md).
 
 Examples in this repository use `example.com` and made-up senders only.
 

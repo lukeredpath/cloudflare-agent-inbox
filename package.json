@@ -8,11 +8,11 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "render-config": "node scripts/render-config-cli.ts",
+    "render-config": "node --env-file-if-exists=.env scripts/render-config-cli.ts",
     "pii-scan": "node scripts/pii-scan-cli.ts",
-    "cli": "node src/cli/index.ts",
+    "cli": "node --env-file-if-exists=.env src/cli/index.ts",
     "migrate": "wrangler d1 migrations apply DB --remote -c dist/wrangler.jsonc",
-    "deploy": "npm run migrate && wrangler deploy",
+    "deploy": "node --env-file-if-exists=.env scripts/deploy-cli.ts",
     "build": "npm test && npm run render-config"
   },
   "devDependencies": {

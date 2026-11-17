@@ -36,8 +36,9 @@ you ─► forward an email ─► inbox+<token>@mail.example.com ─► Worker
 
 - [ ] A **Cloudflare account** with a domain whose DNS is on Cloudflare. Email
   Routing needs Cloudflare DNS.
-- [ ] A **GitHub account**, and this repository forked or copied into it (keep
-  it private until you have checked it contains nothing of yours).
+- [ ] **Git**, to clone this repository. You do **not** need a fork or a GitHub
+  account of your own to deploy: you deploy from your own machine. A copy in your
+  own GitHub account is only needed for deploy-on-push (step 3, option B).
 - [ ] **Node.js 22** and npm 11 locally (`npx npm@11 ...` works without
   installing it).
 - [ ] A mailbox you forward from (any provider), and an agent that can speak MCP
@@ -53,7 +54,7 @@ Paid plan raises the limits. See [deploy.md](deploy.md).
 ## 1. Get the code
 
 ```sh
-git clone https://github.com/<you>/cloudflare-agent-inbox.git
+git clone https://github.com/<owner>/cloudflare-agent-inbox.git
 cd cloudflare-agent-inbox
 npx npm@11 install
 npm test
@@ -82,19 +83,27 @@ Write yours here (and nowhere in the repo):
 
 - Mail: `________`   MCP: `________`   Share: `________`
 
-## 3. Create the Worker and deploy
+## 3. Deploy
 
-Deployment uses **Cloudflare Workers Builds**, connected to your GitHub repo. No
-Cloudflare credentials are stored in GitHub.
+Two ways; **option A is the default** and needs nothing but this clone.
 
-- [ ] In the Cloudflare dashboard, create a Worker and connect it to your repo.
-  The Worker's name is also used as the D1 database and R2 bucket name.
-- [ ] Under the Worker's Settings, Build, add these **build variables**, ticking
-  the secret option so they are masked in logs:
+### Option A: deploy from your machine
+
+- [ ] Create a **deploy token** (My Profile, API Tokens), restricted to your account
+  and zone. It needs to create the Worker, its database and bucket, and attach
+  custom domains: **Workers Scripts Edit**, **D1 Edit**, **Workers R2 Storage Edit**,
+  and for your zone **Workers Routes** and **DNS Edit** (custom domains create DNS
+  records). The "Edit Cloudflare Workers" template is a good start; names in the
+  dashboard may differ slightly. Keep it in your password manager, and use it only
+  for deploys. Step 5 uses a narrower token.
+- [ ] Put your settings in the environment, or in a git-ignored `.env` file
+  (`cp .env.example .env`, then fill it in; prefer your password manager's CLI over
+  writing the token to disk):
 
 | Variable | Value |
 | --- | --- |
-| `AGENT_INBOX_WORKER_NAME` | the Worker's name |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | your deploy token, and your account ID |
+| `AGENT_INBOX_WORKER_NAME` | the Worker's name; also the D1 database and R2 bucket name |
 | `AGENT_INBOX_MAIL_HOSTNAME` | your mail hostname |
 | `AGENT_INBOX_MCP_HOSTNAME` | your MCP hostname |
 | `AGENT_INBOX_SHARE_HOSTNAME` | your share hostname |
@@ -102,17 +111,42 @@ Cloudflare credentials are stored in GitHub.
 | `AGENT_INBOX_ALLOWED_DKIM_DOMAINS` | the domain your mail provider signs your own mail with |
 | `AGENT_INBOX_TRUSTED_ARC_FORWARDERS` | your mailbox provider's domain if you will use its server-side forwarding rules (step 8); otherwise any domain you do not use |
 
-- [ ] Build command: `npm run build`.
-- [ ] **First deploy only:** deploy command `npx wrangler deploy`. This
-  creates the D1 database and R2 bucket. Trigger a build and wait for it to pass.
-- [ ] Now change the deploy command to `npm run deploy` (it applies database
-  migrations, then deploys) and trigger another build.
-- [ ] In the Worker's settings, check the MCP and share hostnames are attached as
-  custom domains.
+- [ ] Deploy:
 
-**Verify:** the build log shows the rendered bindings (database, bucket,
-variables). If the first `npm run deploy` cannot find the database, the first
-deploy above did not complete.
+```sh
+npm run deploy
+```
+
+It renders the Worker's config from those variables, checks whether the database
+exists, and runs the right order: on a fresh account it deploys first (which
+creates the database and bucket) and then applies the migrations; afterwards it
+migrates first, so new code never meets an old schema. It prints
+`Deploy plan: ...` so you can see which.
+
+- [ ] Check the MCP and share hostnames appear as custom domains on the Worker.
+
+**Verify:** the output ends with a successful deploy, and `npm run cli -- lanes list`
+works once you have done step 5. To update later: `git pull`, `npx npm@11 install`,
+`npm run deploy`.
+
+### Option B: deploy on push with Workers Builds (optional)
+
+Workers Builds builds a repository that **you** connect, so this needs your own copy
+of the repo (a fork, or a private copy). Your settings still live in Cloudflare, not
+in the repo, and a copy is only a convenience for triggering builds; keep it updated
+by pulling from the original.
+
+- [ ] Create a Worker in the dashboard and connect your copy.
+- [ ] Add the `AGENT_INBOX_*` variables from the table above as **build variables**
+  (tick the secret option so they are masked in logs). The deploy token is not needed:
+  Workers Builds uses its own.
+- [ ] Build command `npm run build`; deploy command `npm run deploy`.
+- [ ] If the first build cannot find the database, run `npx wrangler deploy` once as
+  the deploy command, then switch back. (`npm run deploy` handles a fresh account by
+  itself when the build token can list databases.)
+
+**Verify (not yet confirmed against a live deployment):** the build log shows the
+rendered bindings, and migrations apply.
 
 ## 4. Route email to the Worker
 
@@ -133,7 +167,7 @@ form needs another look.
 ## 5. Set up the command-line tool
 
 The CLI talks to Cloudflare's API directly, with a **scoped token you hold**, not
-your full login.
+your full login. This is a different, narrower token from the deploy token.
 
 - [ ] Create an API token (My Profile, API Tokens) with only the permissions it
   needs on your account: **D1 Edit** and **Workers Scripts Edit** (for secrets).
