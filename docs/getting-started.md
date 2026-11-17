@@ -287,7 +287,8 @@ npm run cli -- lanes update receipts --forwarded-from orders@shop.example.net
   3. sets the **envelope sender to an address you allow**. Rules that keep the
      original sender, or rewrite it to a different address for every message
      (SRS), will not match an allowlist.
-- Only iCloud Mail has been tested against real forwards. Other providers should
+- This path is modelled on iCloud Mail's forwarding rules but has been tested with
+  synthetic messages only, not yet with a real rule's headers. Other providers should
   work if they meet the three points; if one does not,
   `rejections list --diagnostics` shows what it sent.
 

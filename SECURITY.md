@@ -2,8 +2,9 @@
 
 ## Status
 
-This project is **experimental**. There are no versioned releases: fixes land on
-`main`, and only the latest commit is supported.
+This project is **experimental**. Releases are 0.x and make no stability promises:
+fixes land on `main` and ship in the next release, and only the latest release and
+the latest commit are supported.
 
 ## Reporting a vulnerability
 

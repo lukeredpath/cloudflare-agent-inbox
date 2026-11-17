@@ -2,9 +2,10 @@
 
 > [!WARNING]
 > **Experimental software.** This project is early, was built for its author's own
-> use, and has had little real-world use. It has been checked against only one mail
-> provider's real forwarding behaviour (iCloud Mail). Expect rough edges and breaking
-> changes, and no stability or support guarantees. It handles **untrusted email on
+> use, and has had little real-world use. Hand-forwarded mail has been checked end to
+> end with one provider (iCloud Mail). The path for server-side forwarding rules has
+> only been tested with synthetic messages, not a real provider's headers. Expect
+> rough edges and breaking changes, and no stability or support guarantees. It handles **untrusted email on
 > behalf of AI agents**: before pointing an agent at real mail, read
 > [docs/security.md](docs/security.md), and give the agent only capabilities you
 > would be comfortable with an attacker steering. Use it at your own risk.

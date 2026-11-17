@@ -47,7 +47,8 @@
 
   No mail provider is named in the code. A forwarder works if it seals its own ARC
   set, records the original hop's verdicts in it, and sets the envelope sender to
-  an address you allow. Only one provider has been tested against real forwards.
+  an address you allow. This path has been tested with synthetic messages only; it has
+  not yet been confirmed against a real provider's headers.
 
   Path B is off unless the deployment lists trusted forwarders **and** the lane
   has `forwarded_from` entries. It trusts the forwarder's own record of the

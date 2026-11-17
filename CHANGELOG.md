@@ -1,0 +1,55 @@
+# Changelog
+
+Releases are 0.x while the project is experimental: any release can contain breaking
+changes. Each one is listed here.
+
+## 0.1.0 (2026-11-17)
+
+The first release.
+
+### What is in it
+
+- A Worker that receives forwarded mail through Cloudflare Email Routing and files it
+  into lanes, each with its own secret address and rules.
+- Two ways for mail to prove it came from you: your mail provider's DKIM signature on
+  mail you send or forward by hand, or a trusted forwarder's signed ARC record for
+  server-side forwarding rules.
+- Cleaning of message bodies to plain text, with hidden-text removal (best effort).
+- Lane transforms: unzipping password-protected archives with a secret scoped to the
+  lane, with the original and extracted files both stored.
+- A narrow MCP server for agents: `list_messages`, `get_message`, `create_share_link` and
+  `mark_processed`. Agents read only the lanes they were granted, enforced in SQL.
+  Text written by third parties comes back under fields named `untrusted*`.
+- Short-lived share links for files, on a separate hostname.
+- An admin CLI for lanes, agent tokens, secrets, messages and rejections. It prints
+  metadata only; bodies need `--show-body`.
+- Rate limiting of mail from unlisted senders, a scheduled retention purge, and
+  headers-only logging of rejections.
+- Deployment from a plain checkout with `npm run deploy`, and a project website.
+
+### Breaking changes
+
+These happened during development, before the first release, so they only affect
+anyone running an earlier commit.
+
+- `list_messages` requires a `lane` argument, and nothing lists lanes. An agent can
+  only read a lane whose name it was given. A lane the agent cannot read and a lane
+  that does not exist get the same refusal.
+- `agents mint` is now `agents create`.
+
+### Verification status
+
+Checked with real mail and a real deployment:
+
+- Hand-forwarded mail through iCloud Mail, passing the direct DKIM and SPF check.
+- Unzipping a real password-protected archive within the Free plan's CPU limit.
+- The MCP read path, share link download and `mark_processed`, from a Claude
+  scheduled task, behind the Cloudflare WAF rule described in `docs/security.md`.
+- The admin CLI against the real D1 API.
+
+Not yet confirmed:
+
+- Server-side forwarding rules (the ARC path) against a real provider's headers. It is
+  covered by tests with synthetic messages only.
+- Deploying with Workers Builds. Deploying from a checkout is what has been used.
+- Whether Email Routing retries a message when the Worker throws.
