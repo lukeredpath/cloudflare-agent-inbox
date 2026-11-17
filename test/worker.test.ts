@@ -1,32 +1,20 @@
-import { createExecutionContext, env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import type { Env } from "../src/worker/env";
-import worker from "../src/worker/index";
+import { freshDb } from "./helpers/db";
+import { workerFetch } from "./helpers/mail";
 
-const testEnv = env as unknown as Env;
+const call = workerFetch;
 
-describe("worker stub", () => {
-  it("returns 404 for any request", async () => {
-    const res = await worker.fetch(new Request("https://example.com/anything"), testEnv, createExecutionContext());
+describe("host routing", () => {
+  it("answers 404 on any other host, with no auth hint", async () => {
+    await freshDb();
+    const res = await call("https://elsewhere.example.com/mcp/agent");
     expect(res.status).toBe(404);
+    expect(res.headers.get("www-authenticate")).toBeNull();
   });
 
-  it("drops mail silently", async () => {
-    const message = {
-      from: "sender@example.com",
-      to: "inbox@mail.example.com",
-      headers: new Headers(),
-      raw: new Blob(["Subject: hi\r\n\r\nbody"]).stream(),
-      rawSize: 20,
-      setReject() {
-        throw new Error("must not reject");
-      },
-    } as unknown as ForwardableEmailMessage;
-    await expect(worker.email(message, testEnv, createExecutionContext())).resolves.toBeUndefined();
-  });
-
-  it("has the test bindings", () => {
-    expect(testEnv.DB).toBeDefined();
-    expect(testEnv.BUCKET).toBeDefined();
+  it("does not serve MCP paths on the share host or share paths on the MCP host", async () => {
+    await freshDb();
+    expect((await call("https://files.example.com/mcp/agent", { method: "POST" })).status).toBe(404);
+    expect((await call(`https://mcp.example.com/s/${"a".repeat(39)}`)).status).toBe(401);
   });
 });
