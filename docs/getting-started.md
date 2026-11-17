@@ -89,13 +89,23 @@ Two ways; **option A is the default** and needs nothing but this clone.
 
 ### Option A: deploy from your machine
 
-- [ ] Create a **deploy token** (My Profile, API Tokens), restricted to your account
-  and zone. It needs to create the Worker, its database and bucket, and attach
-  custom domains: **Workers Scripts Edit**, **D1 Edit**, **Workers R2 Storage Edit**,
-  and for your zone **Workers Routes** and **DNS Edit** (custom domains create DNS
-  records). The "Edit Cloudflare Workers" template is a good start; names in the
-  dashboard may differ slightly. Keep it in your password manager, and use it only
-  for deploys. Step 5 uses a narrower token.
+- [ ] Create a **deploy token**, preferably an *account* API token (Manage account,
+  Account API tokens), with two policies. It has to create the Worker, its database
+  and bucket, and attach custom domains:
+
+  | Policy | Permission | Access |
+  | --- | --- | --- |
+  | Account | Workers | **Admin** (creating a Worker needs Admin; Editor is enough afterwards) |
+  | Account | D1 | Edit |
+  | Account | Workers R2 Storage | Edit |
+  | Your zone | Zone | Read |
+  | Your zone | DNS | Edit |
+  | Your zone | Workers Routes | Edit |
+
+  Ignore anything labelled "Legacy" (the old `Workers Scripts` permission has been
+  replaced by the Workers roles). Names may differ slightly in the dashboard; each
+  permission row has a search box. Set an expiry, keep the token in your password
+  manager, and use it only for deploys. Step 5 uses a narrower token.
 - [ ] Put your settings in the environment, or in a git-ignored `.env.deploy` file
   (`cp .env.example .env.deploy`, then fill it in). Better: keep them in a
   **1Password Environment** and mount it at `.env.deploy`, so the token is never
@@ -172,9 +182,10 @@ form needs another look.
 The CLI talks to Cloudflare's API directly, with a **scoped token you hold**, not
 your full login. This is a different, narrower token from the deploy token.
 
-- [ ] Create an API token (My Profile, API Tokens) with only the permissions it
-  needs on your account: **D1 Edit** and **Workers Scripts Edit** (for secrets).
-  The dashboard's names may differ slightly.
+- [ ] Create an account API token with a single account policy and only these
+  permissions: **Workers: Editor** (it sets secrets on the existing Worker) and
+  **D1: Edit**. D1 permissions cannot be limited to one database, so this token can
+  reach every D1 database in the account.
 - [ ] Store it in your password manager. Never put it in the repo.
 - [ ] Export, in your terminal (or load them with your password manager's CLI):
 

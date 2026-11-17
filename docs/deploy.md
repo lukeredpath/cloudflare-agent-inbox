@@ -78,8 +78,7 @@ subaddressing: `inbox+<token>@<mail hostname>`.
 
 The CLI uses a scoped Cloudflare API token passed as `AGENT_INBOX_CLI_API_TOKEN`
 (or `CLOUDFLARE_API_TOKEN` if that is not set)
-(for example from a secrets manager): D1 edit and Workers Scripts edit (for
-secrets) only. Do not use a full `wrangler login`, and never store it in the
+(for example from a secrets manager): Workers Editor (for secrets) and D1 Edit only. Do not use a full `wrangler login`, and never store it in the
 repository. It also needs `CLOUDFLARE_ACCOUNT_ID`, `AGENT_INBOX_WORKER_NAME` and
 `AGENT_INBOX_MAIL_HOSTNAME`.
 

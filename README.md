@@ -62,7 +62,7 @@ See [docs/security.md](docs/security.md) for the threat model,
 
 ```sh
 npx npm@11 install
-export AGENT_INBOX_CLI_API_TOKEN=...      # scoped: D1 edit and Workers secrets edit
+export AGENT_INBOX_CLI_API_TOKEN=...      # narrow: Workers Editor and D1 Edit only
 export CLOUDFLARE_ACCOUNT_ID=...
 export AGENT_INBOX_WORKER_NAME=...        # also the D1 database name
 export AGENT_INBOX_MAIL_HOSTNAME=mail.example.com
