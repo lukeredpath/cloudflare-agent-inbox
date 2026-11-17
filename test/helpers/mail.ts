@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { buildAddress } from "../../src/core/address";
 import type { Lane } from "../../src/core/lanes";
 import type { Env } from "../../src/worker/env";
+import worker from "../../src/worker/index";
 
 export const MAIL_HOST = "mail.example.com";
 
@@ -38,3 +39,11 @@ export function makeMessage(raw: Uint8Array, opts: { from?: string; to: string }
 }
 
 export const laneAddress = (lane: Lane) => buildAddress(lane.addressToken, MAIL_HOST);
+
+/** Calls the Worker's fetch handler as the platform would. */
+export const workerFetch = (url: string, init?: RequestInit): Promise<Response> =>
+  worker.fetch(new Request(url, init) as unknown as Request<unknown, IncomingRequestCfProperties>, testEnv(), {
+    waitUntil() {},
+    passThroughOnException() {},
+    props: {},
+  } as unknown as ExecutionContext);
