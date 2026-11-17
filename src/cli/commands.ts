@@ -241,7 +241,7 @@ export async function lanesDelete(ctx: CliContext, slug: string, yes: boolean | 
   await deleteLane(ctx.db, lane.id);
   return {
     data: { slug: lane.slug, deleted: true },
-    lines: [`Deleted ${printable(lane.slug)}. Its messages and files are removed by the next daily purge. The rejection log is kept.`],
+    lines: [`Deleted ${printable(lane.slug)}. Its messages and files are removed by the next hourly purge. The rejection log is kept.`],
   };
 }
 
@@ -411,7 +411,7 @@ export async function messagesKeep(ctx: CliContext, id: string, off: boolean | u
 
 export async function messagesDelete(ctx: CliContext, id: string, yes: boolean | undefined): Promise<Result> {
   await requireMessage(ctx, id);
-  await confirmDestructive(ctx, `Deleting message ${id} hides it at once and removes its files at the next daily purge`, yes);
+  await confirmDestructive(ctx, `Deleting message ${id} hides it at once and removes its files at the next hourly purge`, yes);
   if (!(await deleteMessage(ctx.db, id))) throw new CliError("No such message");
   return { data: { id, deleted: true }, lines: [`Deleted ${id}.`] };
 }

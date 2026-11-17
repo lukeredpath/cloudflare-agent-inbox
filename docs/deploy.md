@@ -87,7 +87,7 @@ repository. It also needs `CLOUDFLARE_ACCOUNT_ID`, `AGENT_INBOX_WORKER_NAME` and
 Email handlers have tight CPU and subrequest budgets on the Free plan, so the
 defaults are conservative: zip archives are limited to 10 files and 10 MiB
 decompressed, a message to 10 attachments and 30 stored files, and the purge
-works through at most 50 deleted messages per run. Large or complex messages may
+works through at most 200 deleted messages per hourly run. Large or complex messages may
 exceed the CPU limit on Free; the Paid plan raises these limits.
 
 ## Verifying a new deployment

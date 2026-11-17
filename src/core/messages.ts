@@ -189,7 +189,7 @@ export async function setKeep(db: Db, id: string, keep: boolean): Promise<boolea
   return changes > 0;
 }
 
-/** Soft delete: hidden everywhere at once; the daily purge removes the rows and R2 objects. */
+/** Soft delete: hidden everywhere at once; the hourly purge removes the rows and R2 objects. */
 export async function deleteMessage(db: Db, id: string): Promise<boolean> {
   const { changes } = await db.run("UPDATE messages SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL", [
     new Date().toISOString(),

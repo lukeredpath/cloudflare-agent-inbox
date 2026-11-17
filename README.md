@@ -1,5 +1,14 @@
 # cloudflare-agent-inbox
 
+> [!WARNING]
+> **Experimental software.** This project is early, was built for its author's own
+> use, and has had little real-world use. It has been checked against only one mail
+> provider's real forwarding behaviour (iCloud Mail). Expect rough edges and breaking
+> changes, and no stability or support guarantees. It handles **untrusted email on
+> behalf of AI agents**: before pointing an agent at real mail, read
+> [docs/security.md](docs/security.md), and give the agent only capabilities you
+> would be comfortable with an attacker steering. Use it at your own risk.
+
 A Cloudflare Worker that files forwarded emails into **lanes**, which AI agents
 read through a narrow, mostly read-only MCP server. A separate admin CLI manages
 lanes, agent tokens and secrets.
@@ -7,12 +16,6 @@ lanes, agent tokens and secrets.
 > **Unofficial.** This project is not affiliated with, endorsed by, or
 > sponsored by Cloudflare. It runs on Cloudflare's developer platform and uses
 > the name descriptively.
-
-> **Status: early.** Built for the author's own use. It is covered by an extensive
-> test suite using synthetic mail, but has had little real-world use so far, and has
-> been checked against only one mail provider's real forwarding behaviour (iCloud
-> Mail). Expect rough edges and breaking changes, and read
-> [docs/security.md](docs/security.md) before pointing an agent at real mail.
 
 You forward chosen emails (receipts, invoices, notifications) from your own
 mailbox to a lane's unguessable address. The Worker checks that the mail really

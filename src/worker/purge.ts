@@ -3,12 +3,17 @@ import { purgeRejections } from "../core/rejections.ts";
 import type { Env } from "./env.ts";
 import { logEvent } from "./log.ts";
 
-/** Messages purged per batch, and batches per run, sized for the Free plan's 50-subrequest budget. */
-const BATCH = 10;
-const MAX_BATCHES = 5;
+/**
+ * Messages purged per batch, and batches per run, sized for the Free plan's 50-subrequest
+ * budget: a batch costs four calls (two reads, one R2 delete, one D1 batch), so eight batches
+ * plus the other steps stay under it. At 25 messages a batch, a run clears up to 200, and the
+ * job runs hourly. The batch size also keeps every statement under D1's 100-parameter limit.
+ */
+const BATCH = 25;
+const MAX_BATCHES = 8;
 
 /**
- * Daily housekeeping: expired share links, messages past their lane's
+ * Hourly housekeeping: expired share links, messages past their lane's
  * retention, soft-deleted messages (with their R2 objects), and old rejections.
  *
  * Each step runs on its own, so one failure (say, an R2 outage) cannot stop the
@@ -83,11 +88,10 @@ async function removeDeleted(env: Env, db: Db): Promise<number> {
   // Objects go first: if this fails the rows stay, and the next run tries again.
   if (keys.length > 0) await env.BUCKET.delete(keys);
 
-  const attachmentMarks = attachments.map(() => "?").join(",");
+  // Related rows are found through the message ids (at most BATCH of them), never by listing
+  // every attachment id, which could exceed D1's limit on bound parameters.
   await db.batch([
-    ...(attachments.length
-      ? [{ sql: `DELETE FROM shares WHERE attachment_id IN (${attachmentMarks})`, params: attachments.map((a) => a.id) }]
-      : []),
+    { sql: `DELETE FROM shares WHERE attachment_id IN (SELECT id FROM attachments WHERE message_id IN (${marks}))`, params: ids },
     { sql: `DELETE FROM attachments WHERE message_id IN (${marks})`, params: ids },
     { sql: `DELETE FROM messages WHERE id IN (${marks})`, params: ids },
   ]);

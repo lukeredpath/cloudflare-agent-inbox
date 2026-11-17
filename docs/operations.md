@@ -20,7 +20,7 @@ ids are fine: they mean nothing outside the database.
 | `email` | `outcome` (`accepted`, `rejected`, `error`), `lane` (id, or null), `reason` (for rejections), `path` (`direct` or `forwarded`, for accepted), `files`, `bytes`, `ms`, `authenticated` (for errors) | once per inbound message |
 | `mcp` | `agent` (id), `tool`, `outcome` (`ok`, `refused`, `internal_error`) | every agent tool call |
 | `share` | `outcome` (`served`, `not_found`, `missing_object`), `attachment`, `agent`, `bytes` | every share-link request. Records who used a link and which file, never the link |
-| `purge` | `expired_links`, `expired_messages`, `removed_messages`, `removed_rejections`, `failed_steps` | once per daily run |
+| `purge` | `expired_links`, `expired_messages`, `removed_messages`, `removed_rejections`, `failed_steps` | once per hourly run |
 | `purge_step_failed` | `step`, `error` | a purge step failed. The other steps still run, and the run is then failed so Cloudflare shows the cron as errored |
 
 `reason` values are the same as the rejection log: `unknown_address`,

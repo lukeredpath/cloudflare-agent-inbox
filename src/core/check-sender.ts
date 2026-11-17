@@ -1,4 +1,5 @@
 import { findForwarderResults, parseAuthResults, parseTags, type ParsedAuthResults } from "./arc.ts";
+import { isPublicSuffix, isSameOrParent, sameOrganisation } from "./domains.ts";
 import { parseHeaders, type Header } from "./headers.ts";
 import type { ForwardedFromRule } from "./lane-config.ts";
 
@@ -74,7 +75,7 @@ export function checkSender(raw: Uint8Array, envelopeFrom: string, policy: Sende
     // elsewhere, or a signature from an unrelated domain on the list could vouch for anyone.
     const envelopeDomain = domainOf(envelopeFrom);
     const passed = dkimPassDomains(results);
-    const accepted = passed.find((d) => policy.allowedDkimDomains.includes(d) && isSameOrParent(d, envelopeDomain));
+    const accepted = passed.find((d) => policy.allowedDkimDomains.includes(d) && !isPublicSuffix(d) && isSameOrParent(d, envelopeDomain));
     if (accepted && spfPassesFor(results, envelopeFrom)) {
       return { allowed: true, summary: `dkim=pass header.d=${accepted} spf=pass`, path: "direct" };
     }
@@ -106,15 +107,10 @@ function firstCloudflareAuthResults(headers: Header[]): ParsedAuthResults | null
 const dkimPassDomains = (r: ParsedAuthResults) =>
   r.results.filter((x) => x.method === "dkim" && x.result === "pass" && x.props["header.d"]).map((x) => x.props["header.d"]!.toLowerCase());
 
-/** True if `domain` is `parent` or a subdomain of it. */
-const isSameOrParent = (parent: string, domain: string) => domain === parent || domain.endsWith(`.${parent}`);
-
 /** Cloudflare's own SPF result: a pass for exactly this envelope sender. */
 const spfPassesFor = (r: ParsedAuthResults, envelopeFrom: string) =>
   r.results.some((x) => x.method === "spf" && x.result === "pass" && x.props["smtp.mailfrom"]?.toLowerCase() === envelopeFrom);
 
-/** Same domain, or one is a subdomain of the other (relaxed alignment). */
-const aligned = (a: string, b: string) => a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`);
 const domainOf = (address: string) => address.slice(address.lastIndexOf("@") + 1).toLowerCase();
 
 type Forwarded = { ok: true; summary: string } | { ok: false; detail: string };
@@ -148,10 +144,10 @@ function checkForwarded(
       if (verdict === "dmarc" && r.props["header.from"]?.toLowerCase() === fromDomain) {
         return { ok: true, summary: `arc via ${lookup.forwarder}: dmarc=pass header.from=${fromDomain}` };
       }
-      if (verdict === "dkim" && r.props["header.d"] && aligned(r.props["header.d"].toLowerCase(), fromDomain)) {
+      if (verdict === "dkim" && r.props["header.d"] && sameOrganisation(r.props["header.d"].toLowerCase(), fromDomain)) {
         return { ok: true, summary: `arc via ${lookup.forwarder}: dkim=pass header.d=${r.props["header.d"].toLowerCase()}` };
       }
-      if (verdict === "spf" && r.props["smtp.mailfrom"] && aligned(domainOf(r.props["smtp.mailfrom"].toLowerCase()), fromDomain)) {
+      if (verdict === "spf" && r.props["smtp.mailfrom"] && sameOrganisation(domainOf(r.props["smtp.mailfrom"].toLowerCase()), fromDomain)) {
         return { ok: true, summary: `arc via ${lookup.forwarder}: spf=pass aligned with ${fromDomain}` };
       }
     }

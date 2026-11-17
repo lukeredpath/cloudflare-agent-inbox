@@ -32,6 +32,6 @@
   "d1_databases": [{ "binding": "DB", "database_name": "<WORKER_NAME>", "migrations_dir": "migrations" }],
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "<WORKER_NAME>" }],
 
-  // Daily retention purge.
-  "triggers": { "crons": ["17 3 * * *"] }
+  // Hourly purge of expired and deleted data.
+  "triggers": { "crons": ["17 * * * *"] }
 }

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Lane-based email inbox on Cloudflare Workers for AI agents. Unofficial; not affiliated with Cloudflare.",
+  "description": "Experimental: lane-based email inbox on Cloudflare Workers for AI agents. Unofficial; not affiliated with Cloudflare.",
   "license": "MIT",
   "scripts": {
     "test": "vitest run",

@@ -61,13 +61,21 @@ function hostnameOf(href: string): string | null {
 
 const URL_LIKE = /^(?:https?:\/\/|www\.)\S+$/i;
 
+/** Beyond this, HTML is cut off before conversion so a huge body cannot exhaust the CPU budget. */
+export const MAX_HTML_CHARS = 1_000_000;
+
 /** HTML to text: hidden content, scripts, styles and images are dropped; links become `text (domain)`. */
 export function htmlToText(html: string): string {
+  if (html.length > MAX_HTML_CHARS) html = html.slice(0, MAX_HTML_CHARS);
   const out: string[] = [];
   const stack: { name: string; hidden: boolean; link?: { domain: string; start: number } }[] = [];
   let hiddenDepth = 0;
 
-  const TOKEN = /<!--[\s\S]*?(?:-->|$)|<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+  // Every repetition is bounded, so an unterminated quote or a long run of "<a " cannot make the
+  // pattern rescan the rest of the input from each start. Overlong tags are treated as text.
+  const TOKEN = /<!--[\s\S]*?(?:-->|$)|<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]{0,4096}"|'[^']{0,4096}'){0,4096})>/g;
+  // Closing tags for script and style are searched forward from the current position, never by copying the rest.
+  const CLOSERS: Record<string, RegExp> = { script: /<\/script\b[^>]{0,512}>/gi, style: /<\/style\b[^>]{0,512}>/gi };
   let last = 0;
   let m: RegExpExecArray | null;
 
@@ -89,15 +97,11 @@ export function htmlToText(html: string): string {
 
     if (!closing) {
       if (RAW_SKIP.has(name)) {
-        const end = html.slice(last).search(new RegExp(`</${name}\\b[^>]*>`, "i"));
-        if (end === -1) {
-          last = html.length;
-          TOKEN.lastIndex = html.length;
-        } else {
-          const close = html.slice(last + end).match(new RegExp(`</${name}\\b[^>]*>`, "i"))![0];
-          last = last + end + close.length;
-          TOKEN.lastIndex = last;
-        }
+        const closer = CLOSERS[name]!;
+        closer.lastIndex = last;
+        const found = closer.exec(html);
+        last = found ? found.index + found[0].length : html.length;
+        TOKEN.lastIndex = last;
         continue;
       }
       if (name === "img") continue;

@@ -30,7 +30,7 @@ CREATE TABLE agent_lanes (
 );
 
 -- No foreign keys on purpose: deleting a lane soft-deletes its messages, which a
--- daily purge removes from D1 and R2 afterwards.
+-- hourly purge removes from D1 and R2 afterwards.
 CREATE TABLE messages (
   id TEXT PRIMARY KEY,                             -- ULID
   lane_id TEXT NOT NULL,

@@ -187,7 +187,7 @@ export async function rotateLaneToken(db: Db, id: string): Promise<Lane> {
 
 /**
  * Removes the lane and its grants now. Its messages are soft-deleted and the
- * daily purge removes them from D1 and R2. The rejection log is kept.
+ * hourly purge removes them from D1 and R2. The rejection log is kept.
  */
 export async function deleteLane(db: Db, id: string): Promise<void> {
   const now = new Date().toISOString();

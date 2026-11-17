@@ -119,3 +119,39 @@ describe("hidden-text fixture", () => {
     expect(out).not.toMatch(/SECRET|Hidden title|alert/);
   });
 });
+
+describe("htmlToText is bounded (R10)", () => {
+  it("handles thousands of script and style blocks in linear time", () => {
+    const html = "<p>keep</p>" + "<script>var x=1;</script><style>p{}</style>".repeat(15_000) + "<p>end</p>";
+    const t0 = performance.now();
+    const out = htmlToText(html);
+    const ms = performance.now() - t0;
+    expect(out).toContain("keep");
+    expect(out).toContain("end");
+    expect(out).not.toContain("var x");
+    expect(ms).toBeLessThan(1500);
+  });
+
+  it("does not rescan the input from every unterminated tag or quote", () => {
+    const html = '<a "'.repeat(20_000) + "tail";
+    const t0 = performance.now();
+    expect(() => htmlToText(html)).not.toThrow();
+    expect(performance.now() - t0).toBeLessThan(1500);
+    const quoted = "<a href=\"".repeat(20_000) + "tail";
+    const t1 = performance.now();
+    htmlToText(quoted);
+    expect(performance.now() - t1).toBeLessThan(1500);
+  });
+
+  it("cuts off a huge body before converting it", () => {
+    const out = htmlToText("<p>" + "word ".repeat(400_000) + "</p><p>after the cap</p>");
+    expect(out).not.toContain("after the cap");
+    expect(out.length).toBeLessThanOrEqual(1_000_000);
+  });
+
+  it("still handles an unterminated script and ordinary markup after the changes", () => {
+    expect(htmlToText("<p>a</p><script>never closed <p>b</p>").trim()).toBe("a");
+    expect(htmlToText("<SCRIPT >x</SCRIPT ><p>ok</p>").trim()).toBe("ok");
+    expect(htmlToText('<p class="x">hello &amp; bye</p>').trim()).toBe("hello & bye");
+  });
+});

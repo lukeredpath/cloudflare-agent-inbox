@@ -107,3 +107,33 @@ describe("scheduled purge", () => {
     expect(await purge(env)).toEqual({ removed: 0 });
   });
 });
+
+describe("purge throughput and limits (R3)", () => {
+  it("clears a large backlog in a single run, within the batch budget", async () => {
+    const lane = await createLane(db, { slug: "backlog" });
+    for (let i = 0; i < 150; i++) await insertMessage(db, message(lane.id, `m${i}`, daysAgo(1)), []);
+    await db.run("UPDATE messages SET deleted_at = ?", [new Date().toISOString()]);
+    expect((await purge(env)).removed).toBe(150);
+    expect(await ids()).toEqual([]);
+  });
+
+  it("copes with messages that have many attachments, beyond D1's 100-parameter limit", async () => {
+    const lane = await createLane(db, { slug: "heavy", shareable: true });
+    for (let m = 0; m < 25; m++) {
+      const atts = Array.from({ length: 30 }, (_, n) => attachment(`att-${m}-${n}`));
+      await insertMessage(db, message(lane.id, `heavy${m}`, daysAgo(1)), atts);
+      await put(`raw/heavy${m}`, ...atts.map((a) => a.r2Key));
+    }
+    await createShare(db, "att-0-0", "agent", 30);
+    await db.run("UPDATE messages SET deleted_at = ?", [new Date().toISOString()]);
+    expect((await purge(env)).removed).toBe(25);
+    expect(await db.all("SELECT id FROM attachments")).toEqual([]);
+    expect(await db.all("SELECT token_hash FROM shares")).toEqual([]);
+    expect(await keys()).toEqual([]);
+  });
+
+  it("runs hourly", async () => {
+    const template = (await import("../wrangler.example.jsonc?raw")).default;
+    expect(template).toContain('"crons": ["17 * * * *"]');
+  });
+});

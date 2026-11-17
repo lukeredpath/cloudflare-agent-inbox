@@ -45,3 +45,23 @@ describe("safeFilename", () => {
     expect(safeFilename("a".repeat(500) + ".pdf", "x").length).toBeLessThanOrEqual(100);
   });
 });
+
+describe("sniffType: PDF signature must be at the start (R6)", () => {
+  const bytesOf = (s: string) => new TextEncoder().encode(s);
+
+  it("rejects a file that only contains the signature somewhere near the start", () => {
+    const polyglot = bytesOf("<html><script>alert(1)</script>" + " ".repeat(150) + "%PDF-1.4 hidden in the first kilobyte");
+    expect(sniffType(polyglot, "a.pdf", "application/pdf")).toBe("text/plain");
+    expect(sniffType(bytesOf("GET / HTTP/1.1\n%PDF-1.7"), "a.pdf", undefined)).toBe("text/plain");
+  });
+
+  it("still accepts a real PDF, with a byte-order mark or a little leading whitespace", () => {
+    expect(sniffType(bytesOf("%PDF-1.7\n%\u00e2\u00e3"), "a.pdf", undefined)).toBe("application/pdf");
+    expect(sniffType(bytesOf("\n\n%PDF-1.4\n"), "a.pdf", undefined)).toBe("application/pdf");
+    expect(sniffType(new Uint8Array([0xef, 0xbb, 0xbf, ...bytesOf("%PDF-1.4")]), "a.pdf", undefined)).toBe("application/pdf");
+  });
+
+  it("does not skip more than a few bytes of padding", () => {
+    expect(sniffType(bytesOf(" ".repeat(40) + "%PDF-1.4"), "a.pdf", undefined)).toBe("text/plain");
+  });
+});

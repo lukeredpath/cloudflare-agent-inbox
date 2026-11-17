@@ -364,6 +364,6 @@ npm run cli -- messages keep <id>               # exempt from retention
 npm run cli -- messages inject-test receipts    # test an agent without real mail
 ```
 
-Messages are purged after the lane's retention (90 days by default) by a daily
+Messages are purged after the lane's retention (90 days by default) by an hourly
 job. Updating is a normal `git pull` and push: Workers Builds redeploys and
 applies new migrations.

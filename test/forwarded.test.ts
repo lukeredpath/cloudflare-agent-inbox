@@ -295,3 +295,50 @@ describe("end to end", () => {
     await expect(updateLane(db, lane.id, { forwarded_from: [{ from: "a@example.org", require: [] }] })).rejects.toThrow();
   });
 });
+
+describe("domain alignment is organisation-aware (R9)", () => {
+  const rule = (require: ("dmarc" | "dkim" | "spf")[], from = "billing@billing.example.org") => ({ forwardedFrom: [{ from, require }] });
+
+  it("two different sites on a shared hosting suffix are not aligned", () => {
+    const from = "owner@owner.github.io";
+    const attacker = forwarded({ recorded: "arc=pass; dkim=pass header.d=attacker.github.io" }, {});
+    const raw = new TextDecoder().decode(attacker).replace("billing@billing.example.org", from);
+    expect(check(new TextEncoder().encode(raw), rule(["dkim"], from)).allowed).toBe(false);
+    // The same site signing for itself is fine.
+    const own = new TextDecoder().decode(forwarded({ recorded: "arc=pass; dkim=pass header.d=owner.github.io" })).replace("billing@billing.example.org", from);
+    expect(check(new TextEncoder().encode(own), rule(["dkim"], from)).allowed).toBe(true);
+  });
+
+  it("a signature from a bare public suffix never aligns", () => {
+    const raw = new TextDecoder().decode(forwarded({ recorded: "arc=pass; dkim=pass header.d=co.uk" })).replace("billing@billing.example.org", "a@shop.co.uk");
+    expect(check(new TextEncoder().encode(raw), rule(["dkim"], "a@shop.co.uk")).allowed).toBe(false);
+  });
+
+  it("sibling subdomains of one organisation still align, for dkim and spf", () => {
+    const dkim = forwarded({ recorded: "arc=pass; dkim=pass header.d=mail.example.org" });
+    expect(check(dkim, rule(["dkim"])).allowed).toBe(true);
+    const spf = forwarded({ recorded: "arc=pass; spf=pass smtp.mailfrom=bounce@esp.example.org" });
+    expect(check(spf, rule(["spf"])).allowed).toBe(true);
+  });
+
+  it("path A will not accept a public suffix as the signing domain", () => {
+    const raw = buildEml({ auth: ["Authentication-Results: mx.cloudflare.net; dkim=pass header.d=co.uk; spf=pass smtp.mailfrom=u@a.co.uk"] });
+    const v = checkSender(raw, "u@a.co.uk", { allowedSenders: ["u@a.co.uk"], allowedDkimDomains: ["co.uk"] });
+    expect(v.allowed).toBe(false);
+  });
+});
+
+describe("domain helpers", () => {
+  it("knows public suffixes and organisations", async () => {
+    const { isPublicSuffix, sameOrganisation, isSameOrParent } = await import("../src/core/domains");
+    expect(isPublicSuffix("com")).toBe(true);
+    expect(isPublicSuffix("co.uk")).toBe(true);
+    expect(isPublicSuffix("example.co.uk")).toBe(false);
+    expect(sameOrganisation("a.example.com", "b.example.com")).toBe(true);
+    expect(sameOrganisation("a.github.io", "b.github.io")).toBe(false);
+    expect(sameOrganisation("evil.co.uk", "good.co.uk")).toBe(false);
+    expect(sameOrganisation("example.com", "example.org")).toBe(false);
+    expect(isSameOrParent("example.com", "mail.example.com")).toBe(true);
+    expect(isSameOrParent("mail.example.com", "example.com")).toBe(false);
+  });
+});
