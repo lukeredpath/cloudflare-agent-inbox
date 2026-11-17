@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-check/
+.wrangler/
+.dev.vars
+.env
+# Real deployment config (rendered at build time; never committed)
+wrangler.jsonc
+# Local-only material
+samples/
+brief*
+.pii-denylist

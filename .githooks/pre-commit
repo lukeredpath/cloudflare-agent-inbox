@@ -1,0 +1,10 @@
+#!/bin/sh
+# Enable with: git config core.hooksPath .githooks
+# Runs the personal-value scan (needs a local denylist) and gitleaks if installed.
+set -e
+node scripts/pii-scan-cli.ts
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner
+else
+  echo "pre-commit: gitleaks not installed; skipping (CI still runs it)" >&2
+fi
