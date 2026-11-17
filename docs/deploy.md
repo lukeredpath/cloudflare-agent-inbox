@@ -56,6 +56,13 @@ hostnames must differ from each other.
   databases the script assumes the database exists, so on a fresh account run
   `npx wrangler deploy` once as the deploy command, then switch back.
 
+## Rate limiting and WAF
+
+The config template includes a rate-limiting binding for inbound mail
+(`MAIL_LIMITER`); its `namespace_id` only has to be an integer that no other rate
+limiter in your account uses. Cloudflare rules for the web hostnames are described in
+[security.md](security.md#cloudflare-protections).
+
 ## Email Routing
 
 Catch-all rules are only available on the apex domain, so lane addresses use

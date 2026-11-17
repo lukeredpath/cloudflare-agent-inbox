@@ -32,6 +32,11 @@
   "d1_databases": [{ "binding": "DB", "database_name": "<WORKER_NAME>", "migrations_dir": "migrations" }],
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "<WORKER_NAME>" }],
 
+  // Cloudflare's rate-limiting binding: mail from unlisted senders is limited per location
+  // (20 per 10 seconds) before any database work. namespace_id only has to be an integer
+  // that no other rate limiter in your account uses.
+  "ratelimits": [{ "name": "MAIL_LIMITER", "namespace_id": "51730", "simple": { "limit": 20, "period": 10 } }],
+
   // Hourly purge of expired and deleted data.
   "triggers": { "crons": ["17 * * * *"] }
 }

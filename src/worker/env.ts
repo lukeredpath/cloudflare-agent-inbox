@@ -13,6 +13,12 @@ export interface Env {
   ALLOWED_DKIM_DOMAINS: string;
   /** Comma-separated forwarders (e.g. a mailbox provider) whose ARC record of the original sender is trusted. */
   TRUSTED_ARC_FORWARDERS?: string;
+  /**
+   * Cloudflare's rate-limiting binding. When present, mail from senders that are not on the
+   * deployment's allowlist is rate limited before any database work. Optional: without it
+   * nothing is limited.
+   */
+  MAIL_LIMITER?: RateLimit;
   /** Per-bucket cap on logged rejections per rolling day (default 50). */
   MAX_REJECTED_PER_DAY?: string;
   /** Secrets that lane transforms may reference by name. */

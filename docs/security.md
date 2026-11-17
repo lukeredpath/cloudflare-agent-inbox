@@ -66,6 +66,7 @@
 | Paused lane, verified sender | rejected at SMTP (bounces to the sender), logged |
 | Paused lane, anyone else | dropped silently, so the paused state is not visible |
 | Too large, attachment not allowed, parse error | dropped silently, logged |
+| Flood from unlisted senders over the rate limit | dropped before any database work, logged as `rate_limited` (not stored in the rejection log) |
 | Storage failure after the sender was verified | rejected at SMTP, so a genuine forward is never lost silently |
 
 Nothing rejected is stored beyond a headers-only log row (the full recipient is
@@ -88,6 +89,54 @@ Embedded images are discarded without being stored.
   signature, which is one reason path B reads the provider's record instead of
   re-checking the original signature. A leading `[Not Virus Scanned]` is removed
   from the stored subject; the raw message is stored untouched.
+
+## Cloudflare protections
+
+Cloudflare's own features can sit in front of the Worker. Some are inherent, some you
+add. Plan limits below are for the Free plan; check your own.
+
+**Mail.** There is no WAF in front of SMTP. What exists:
+
+- *Inherent:* Cloudflare's mail servers enforce the sender's DMARC policy and reject
+  known-bad senders before a message reaches the Worker.
+- *Rate limit (in this project):* the Worker uses Cloudflare's rate-limiting binding
+  (`MAIL_LIMITER`, 20 per 10 seconds per location) for mail from senders that are not
+  on the deployment's allowlist. Over the limit, mail is dropped before any database
+  work and logged as `rate_limited`. Mail from a listed sender is never limited. It
+  is approximate and per location, and a flood that spoofs a listed sender's address
+  bypasses it (it must still pass authentication). The binding is optional; without
+  it nothing is limited.
+
+**Web (MCP and share hosts).** These hostnames are proxied, so zone features apply.
+A single custom rule is enough to remove everything the Worker does not need to see:
+
+```
+(http.host eq "mcp.example.com"
+   and not (http.request.method eq "POST"
+            and http.request.uri.path eq "/mcp/agent"
+            and (ip.src in {<ranges your agents call from>} or ip.geoip.country eq "GB")))
+or (http.host eq "files.example.com"
+   and not (http.request.method eq "GET" and starts_with(http.request.uri.path, "/s/")))
+```
+
+Action: Block. The first half lets only `POST /mcp/agent` through, and only from the
+networks your agents use. The second lets only `GET /s/...` through; share links are
+fetched by third-party services from arbitrary addresses, so they cannot be limited
+by location. Blocked requests get a bare 403 that does not name the product.
+
+Things to know:
+
+- If the mail and MCP hostnames are the same, one rule still covers both: mail does not
+  use HTTP.
+- The Free plan allows 5 custom rules and a single rate-limiting rule for the whole
+  zone, so check what is already used before adding more.
+- Do **not** turn on Bot Fight Mode for a zone that also serves other API traffic: it is
+  zone-wide, cannot be exempted by custom rules, and can challenge legitimate machine
+  clients.
+- Cloudflare Access in front of the MCP is not an option for clients that can only
+  send a bearer token, such as Claude's custom connectors.
+- Test after adding the rule: an expected request still reaches the Worker (a 401 for
+  an unauthenticated MCP call, a 404 for an unknown link), and anything else gets a 403.
 
 ## Lanes and agents
 

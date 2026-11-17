@@ -64,6 +64,20 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
     logEvent("email", { outcome, lane: laneId, bytes: message.rawSize, ms: Date.now() - started, ...extra }, outcome === "error" ? "error" : "log");
 
   try {
+    // Shed floods cheaply: mail from anyone who is not a listed sender shares one rate limit, and
+    // is dropped before any database work once it is exceeded. Listed senders are never limited,
+    // so a flood cannot starve real mail. A failing limiter lets the message through.
+    if (env.MAIL_LIMITER && !parseList(env.DEFAULT_ALLOWED_SENDERS).includes(envelopeFrom)) {
+      const allowed = await env.MAIL_LIMITER.limit({ key: "unlisted-sender" }).then(
+        (r) => r.success,
+        () => true,
+      );
+      if (!allowed) {
+        log("rejected", { reason: "rate_limited" });
+        return;
+      }
+    }
+
     const token = parseRecipient(message.to, env.MAIL_HOSTNAME);
     const lane = token ? await getLaneByToken(db, token) : null;
     if (!lane) {

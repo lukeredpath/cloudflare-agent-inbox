@@ -323,6 +323,8 @@ strict about who can get mail in and what an agent can do, not by judging conten
 - [ ] Grant each agent only the lanes it needs.
 - [ ] Mint tokens yourself, in a terminal, and store them in a password manager.
 - [ ] Never pass `--yes` or `--show-body` from automation.
+- [ ] Put the Cloudflare rule from [security.md](security.md#cloudflare-protections) in
+  front of your MCP and share hostnames.
 - [ ] Read [security.md](security.md).
 
 ## Troubleshooting
