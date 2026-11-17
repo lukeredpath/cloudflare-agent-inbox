@@ -12,3 +12,5 @@ wrangler.jsonc
 samples/
 brief*
 .pii-denylist
+# Local tooling state
+.claude/
