@@ -124,7 +124,7 @@ export async function getMessageForAgent(db: Db, agentId: string, id: string): P
 
 export async function listAttachments(db: Db, messageId: string): Promise<AttachmentRow[]> {
   return db.all<AttachmentRow>(
-    "SELECT id, message_id, parent_id, filename, content_type, size, r2_key, transform_error FROM attachments WHERE message_id = ? ORDER BY id",
+    "SELECT id, message_id, parent_id, filename, content_type, size, r2_key, transform_error FROM attachments WHERE message_id = ? ORDER BY rowid",
     [messageId],
   );
 }
