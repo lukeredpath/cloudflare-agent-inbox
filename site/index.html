@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cloudflare-agent-inbox</title>
+<meta name="description" content="A Cloudflare Worker that files forwarded emails into lanes, read by AI agents through a narrow MCP server.">
+<meta name="theme-color" content="#F2F0E6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#152031" media="(prefers-color-scheme: dark)">
+<script>
+  // Apply a theme chosen with the picker before first paint.
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23fbd135'/%3E%3Cpath d='M5 11h22M5 16h22M5 21h22' stroke='%232a1f14' stroke-width='2.5'/%3E%3C/svg%3E">
+<style>
+  /* Self-hosted, SIL OFL; licences are alongside the files in fonts/. */
+  @font-face { font-family: "Schibsted Grotesk"; font-weight: 400; font-display: swap; src: url("fonts/schibsted-grotesk-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Schibsted Grotesk"; font-weight: 500; font-display: swap; src: url("fonts/schibsted-grotesk-latin-500-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Schibsted Grotesk"; font-weight: 800; font-display: swap; src: url("fonts/schibsted-grotesk-latin-800-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Besley"; font-weight: 400 900; font-display: swap; src: url("fonts/besley-latin-wght-normal.woff2") format("woff2-variations"); }
+  @font-face { font-family: "DM Mono"; font-weight: 400; font-display: swap; src: url("fonts/dm-mono-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "DM Mono"; font-weight: 500; font-display: swap; src: url("fonts/dm-mono-latin-500-normal.woff2") format("woff2"); }
+
+  :root {
+    color-scheme: light dark;
+    --lemon: #fbd135;
+    --page: #f2f0e6;
+    --text: #2a1f14;
+    --secondary: #6b5f52;
+    --rule: #e2ded0;
+    --link-line: #d4a600;
+    --code-bg: #faf8f2;
+    --display: "Besley", Georgia, serif;
+    --sans: "Schibsted Grotesk", system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, Menlo, monospace;
+  }
+  /* Dark applies when the system asks for it and the picker has not forced
+     light, or when the picker forces dark. Keep the two blocks in step. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #152031;
+      --text: #d3dae3;
+      --secondary: #9eabbd;
+      --rule: #2a3a50;
+      --link-line: var(--lemon);
+      --code-bg: #1c2a3e;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #152031;
+    --text: #d3dae3;
+    --secondary: #9eabbd;
+    --rule: #2a3a50;
+    --link-line: var(--lemon);
+    --code-bg: #1c2a3e;
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--text);
+    border-top: 10px solid var(--lemon);
+    font: 400 1.0625rem/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  p { margin: 0 0 1em; }
+  .wrap { max-width: 62rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  a { color: inherit; text-decoration: underline; text-decoration-color: var(--link-line); text-decoration-thickness: .12em; text-underline-offset: .2em; }
+  @media (hover: hover) {
+    a:not(.btn):hover {
+      background: var(--lemon); color: #2a1f14; text-decoration-color: transparent;
+      box-shadow: 0 0 0 .12em var(--lemon); -webkit-box-decoration-break: clone; box-decoration-break: clone;
+    }
+  }
+  :focus-visible { outline: 3px solid var(--text); outline-offset: 3px; border-radius: 2px; }
+  code { font: 0.875em var(--mono); background: var(--code-bg); border: 1px solid var(--rule); padding: 1px 5px; border-radius: 3px; }
+
+  nav .wrap { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1.5rem; padding-top: 1.25rem; padding-bottom: 1.25rem; }
+  nav a { text-decoration: none; display: inline-block; padding: .5rem 0; }
+  /* Padded to a tap target: keep the highlight on the text, not the padding. */
+  @media (hover: hover) { nav a:hover { box-shadow: none; background-clip: content-box; } }
+  .brand { font: 800 1.0625rem var(--display); letter-spacing: -.015em; white-space: nowrap; }
+  nav .links { display: contents; }
+  nav .links a { white-space: nowrap; }
+
+  /* hero */
+  .hero { padding: 3.5rem 0 4rem; display: grid; grid-template-columns: 1.15fr 1fr; gap: 3.5rem; align-items: center; }
+  h1 { font: 800 clamp(1.75rem, 1.3rem + 1.7vw, 2.5rem)/1.1 var(--display); letter-spacing: -.02em; margin: 0 0 1.25rem; }
+  .lede { font-size: 1.2rem; color: var(--secondary); margin-bottom: 1.75rem; }
+  .lede b { color: var(--text); font-weight: 500; }
+  .buttons { display: flex; flex-wrap: wrap; gap: .7rem; }
+  .btn {
+    display: inline-block; padding: .6rem 1.05rem; border: 1.5px solid var(--text); border-radius: 3px;
+    font: 500 .95rem var(--sans); color: var(--text); text-decoration: none;
+  }
+  .btn:hover { background: var(--code-bg); }
+  .btn.primary { background: var(--lemon); border-color: var(--lemon); color: #2a1f14; font-weight: 800; }
+  .btn.primary:hover { background: var(--lemon); filter: brightness(.95); }
+  .small { font-size: .85rem; color: var(--secondary); margin: 1.4rem 0 0; }
+
+  /* lane diagram */
+  .diagram { font: .8rem/1.4 var(--mono); border: 1px solid var(--rule); background: var(--code-bg); border-radius: 4px; padding: 1.1rem; }
+  .diagram .head, .diagram .row { display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; gap: .7rem; }
+  .diagram .head { color: var(--secondary); font: 500 .85rem var(--sans); margin-bottom: .7rem; }
+  .diagram .row { margin-bottom: .7rem; }
+  .diagram .row:last-child { margin-bottom: 0; }
+  .diagram .from { color: var(--secondary); }
+  .diagram .lane { position: relative; background: var(--lemon); color: #2a1f14; padding: .45rem .6rem; text-align: center; }
+  .diagram .lane.none { background: transparent; border: 1px dashed var(--rule); color: var(--secondary); }
+  .diagram .lane::after { content: ""; position: absolute; top: 50%; right: -.7rem; width: .7rem; border-top: 1.5px solid var(--link-line); }
+  .diagram .lane.none::after { border-top-style: dashed; border-top-color: var(--rule); }
+  .diagram .to { text-align: right; }
+  .diagram .to.none { color: var(--secondary); }
+
+  /* sections */
+  section { border-top: 1px solid var(--rule); padding: 3.5rem 0; }
+  section .wrap { display: grid; grid-template-columns: 11rem 1fr; gap: 2.5rem; }
+  .label { font: 500 1rem var(--sans); color: var(--secondary); padding-top: .5rem; }
+  h2 { font: 800 clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem)/1.1 var(--display); letter-spacing: -.015em; margin: 0 0 .9rem; }
+  .intro { color: var(--secondary); font-size: 1.125rem; margin-bottom: 2rem; max-width: 38em; }
+
+  dl { margin: 0; border-top: 1px solid var(--rule); }
+  dl div { display: grid; grid-template-columns: 14rem 1fr; gap: 1.5rem; padding: .9rem 0; border-bottom: 1px solid var(--rule); }
+  dt { font-weight: 800; }
+  dd { margin: 0; color: var(--secondary); }
+
+  pre {
+    margin: 0 0 1.75rem; padding: 1.1rem 1.25rem; overflow-x: auto;
+    background: var(--code-bg); border-radius: 4px;
+    font: .875rem/1.65 var(--mono);
+  }
+  pre .c { color: var(--secondary); }
+  pre .p { color: var(--secondary); user-select: none; }
+
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0 0 1.5rem; }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 2.25rem 1fr; padding: .4rem 0; }
+  ol.steps li::before { content: counter(s) "."; font: 500 1rem var(--sans); color: var(--secondary); }
+
+  .arch { border: 1px solid var(--rule); border-radius: 4px; margin-bottom: 1.5rem; }
+  .arch .tier { display: grid; grid-template-columns: 9.5rem 1fr; gap: 1.25rem; padding: .85rem 1.1rem; border-bottom: 1px solid var(--rule); }
+  .arch .tier:last-child { border-bottom: 0; }
+  .arch .tier:nth-child(even) { background: var(--code-bg); }
+  .arch .tier b { font: 500 .8rem var(--mono); padding-top: .15rem; justify-self: start; align-self: start; }
+  /* The two Worker entry points that serve traffic get the lemon highlighter. */
+  .arch .tier.hot b { background: var(--lemon); color: #2a1f14; padding: .15rem .4rem; }
+  .arch .tier span { color: var(--secondary); font-size: .95rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  td { padding: .7rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tr:first-child td { border-top: 1px solid var(--rule); }
+  td:first-child { width: 12rem; color: var(--secondary); }
+
+  footer { border-top: 1px solid var(--rule); padding: 1.75rem 0 2.75rem; font-size: .85rem; color: var(--secondary); }
+  footer p { margin: 0 0 .4rem; }
+
+  /* System, Light or Dark. Hidden until the script runs, so without
+     JavaScript the page simply follows the system setting. */
+  .foot-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 1.5rem; margin-top: .6rem; }
+  .foot-row .made { margin: 0; }
+  .theme-picker { display: flex; margin: 0 -.5rem 0 auto; padding: 0; border: 0; font: 500 .8125rem/1 var(--sans); }
+  .theme-picker[hidden] { display: none; }
+  .theme-picker label { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding-inline: .5rem; cursor: pointer; }
+  .theme-picker input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+  .theme-picker input:checked + span { color: var(--text); text-decoration: underline; text-decoration-color: var(--link-line); text-decoration-thickness: .15em; text-underline-offset: .3em; }
+  .theme-picker label:hover span { color: var(--text); }
+  .theme-picker input:focus-visible + span { outline: 3px solid var(--text); outline-offset: 3px; border-radius: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+  @media (max-width: 800px) {
+    .hero { grid-template-columns: 1fr; gap: 2.25rem; padding: 2.25rem 0 2.75rem; }
+    section { padding: 2.5rem 0; }
+    section .wrap { grid-template-columns: 1fr; gap: .25rem; }
+    dl div { grid-template-columns: 1fr; gap: .15rem; }
+    .arch .tier { grid-template-columns: 1fr; gap: .15rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#">cloudflare-agent-inbox</a>
+    <div class="links">
+      <a href="#start">Get started</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#licence">Licence</a>
+      <a href="https://github.com/__REPO__">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <h1>Give agents the mail they need, and nothing else.</h1>
+      <p class="lede">
+        A Cloudflare Worker that files the emails you forward into <b>lanes</b>.
+        Agents read only the lanes you grant them, through a narrow, mostly
+        read-only MCP server.
+      </p>
+      <div class="buttons">
+        <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Setup guide</a>
+        <a class="btn" href="https://github.com/__REPO__/blob/main/docs/agent-setup.md">Agent-guided setup</a>
+        <a class="btn" href="https://github.com/__REPO__">GitHub</a>
+      </div>
+      <p class="small">Unofficial. Not affiliated with, endorsed by, or sponsored by Cloudflare.</p>
+    </div>
+
+    <div class="diagram" role="img" aria-label="Example: receipts and invoices go to lanes granted to a finance agent, alerts go to a lane granted to an ops agent, and mail sent to an unknown address is dropped.">
+      <div class="head"><span>Forwarded</span><span style="text-align:center">Lane</span><span style="text-align:right">Granted to</span></div>
+      <div class="row"><span class="from">shop receipts</span><span class="lane">receipts</span><span class="to">finance-agent</span></div>
+      <div class="row"><span class="from">supplier invoices</span><span class="lane">invoices</span><span class="to">finance-agent</span></div>
+      <div class="row"><span class="from">service alerts</span><span class="lane">alerts</span><span class="to">ops-agent</span></div>
+      <div class="row"><span class="from">unknown address</span><span class="lane none">no lane</span><span class="to none">dropped</span></div>
+    </div>
+  </header>
+</div>
+
+<section id="what">
+  <div class="wrap">
+    <div class="label">What it does</div>
+    <div>
+      <h2>Forward it, and it is filed.</h2>
+      <p class="intro">
+        You forward chosen emails (receipts, invoices, notifications) from your own
+        mailbox to a lane's unguessable address. The Worker checks the mail really came
+        from you, turns it into clean plain text, stores the original, and makes it
+        available to the agents you granted that lane, and nobody else.
+      </p>
+      <dl>
+        <div><dt>Lanes are the unit of policy</dt><dd>Each lane has its own address, allowed senders, attachment rules, size and retention limits. Lanes are data, not code.</dd></div>
+        <div><dt>Checked at the door</dt><dd>Sender and DKIM checks run before anything is stored. Anything that fails is dropped without a reply and logged headers-only. The one exception is a verified forward to a paused lane, which bounces so you notice.</dd></div>
+        <div><dt>No AI in the pipeline</dt><dd>Conversion to text is deterministic. Hidden HTML, zero-width and bidi characters are stripped, and links become <code>text (domain)</code>.</dd></div>
+        <div><dt>A small agent surface</dt><dd>Four tools: <code>list_messages</code>, <code>get_message</code>, <code>create_share_link</code>, <code>mark_processed</code>. Third-party text comes back in <code>untrusted*</code> fields.</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <div class="label">Get started</div>
+    <div>
+      <h2>Four commands to your first lane.</h2>
+      <p class="intro">Once the Worker is deployed and Email Routing points at it, the admin CLI takes over.</p>
+<pre><span class="c"># point the CLI at your account</span>
+<span class="p">$</span> export AGENT_INBOX_CLI_API_TOKEN=...
+<span class="p">$</span> export CLOUDFLARE_ACCOUNT_ID=...
+<span class="p">$</span> export AGENT_INBOX_WORKER_NAME=...
+<span class="p">$</span> export AGENT_INBOX_MAIL_HOSTNAME=mail.example.com
+
+<span class="c"># create a lane, then give an agent access to it</span>
+<span class="p">$</span> npm run cli -- lanes create receipts --description "Shop receipts"
+<span class="p">$</span> npm run cli -- agents mint my-agent
+<span class="p">$</span> npm run cli -- agents grant my-agent receipts
+<span class="p">$</span> npm run cli -- messages inject-test receipts --text "Total 3.50 GBP"</pre>
+      <ol class="steps">
+        <li><span><b>Deploy the Worker</b> from a plain clone with <code>npm run deploy</code>. No fork needed.</span></li>
+        <li><span><b>Create a lane.</b> The CLI prints its address; point a mail rule in your mailbox at it.</span></li>
+        <li><span><b>Mint an agent token</b> and grant it the lanes it should see. It is shown once, in a terminal only.</span></li>
+        <li><span><b>Connect your agent</b> to the MCP endpoint with that bearer token.</span></li>
+      </ol>
+      <p>The full guide covers DNS, Email Routing and deploy tokens; allow an hour or two the first time. If you would rather an agent did the mechanical parts, there is a prompt for that. It has not yet been used end to end, so treat a first run as a trial.</p>
+      <div class="buttons">
+        <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Full setup guide</a>
+        <a class="btn" href="https://github.com/__REPO__/blob/main/docs/agent-setup.md">Agent-guided setup</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap">
+    <div class="label">Architecture</div>
+    <div>
+      <h2>One Worker, two stores, one CLI.</h2>
+      <p class="intro">There is no admin route on the Worker. Management goes through the Cloudflare API from your machine.</p>
+      <div class="arch">
+        <div class="tier"><b>Email Routing</b><span>Your forward arrives at <code>inbox+&lt;token&gt;@mail.example.com</code>. The token is 160 random bits.</span></div>
+        <div class="tier hot"><b>Worker: email()</b><span>Token to lane, sender and DKIM checks, paused lanes, size and attachment policy, clean text, then the lane's attachment transforms. Anything that fails is dropped silently, except a verified forward to a paused lane, which bounces.</span></div>
+        <div class="tier"><b>D1 and R2</b><span>Clean text and metadata in D1. The raw message and attachments in R2.</span></div>
+        <div class="tier hot"><b>Worker: fetch()</b><span>The MCP server on its own host with bearer tokens, scoped to granted lanes inside the SQL itself. Short-lived share links serve downloads.</span></div>
+        <div class="tier"><b>Worker: scheduled()</b><span>A cron purge for retention, expired share links and old rejection records.</span></div>
+        <div class="tier"><b>agent-inbox CLI</b><span>Runs on your machine. Manages lanes, agent tokens and secrets. Prints metadata only unless you ask for bodies.</span></div>
+      </div>
+      <p>
+        Email bodies are untrusted data written by third parties. The design keeps risk
+        down with tight ingress control, per-lane scoping and a minimal agent surface, not
+        by filtering content, so safety also depends on what the consuming agent is allowed
+        to do. Read the <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a>
+        before you connect one.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="licence">
+  <div class="wrap">
+    <div class="label">Licence</div>
+    <div>
+      <h2>MIT licensed.</h2>
+      <p class="intro">
+        Use, copy, modify and distribute it, including commercially, as long as the
+        copyright and licence notice stay with it. It is provided as is, without warranty.
+      </p>
+      <table>
+        <tr><td>Licence</td><td><a href="https://github.com/__REPO__/blob/main/LICENSE">MIT</a></td></tr>
+        <tr><td>Copyright</td><td>2026 Luke Redpath</td></tr>
+        <tr><td>Security issues</td><td><a href="https://github.com/__REPO__/blob/main/SECURITY.md">SECURITY.md</a></td></tr>
+        <tr><td>Source and issues</td><td><a href="https://github.com/__REPO__">github.com/__REPO__</a></td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>cloudflare-agent-inbox is an independent project. Cloudflare and Cloudflare Workers are trademarks of Cloudflare, Inc., used here descriptively.</p>
+    <p>Examples use <code>example.com</code> and made-up addresses only. Fonts (Besley, Schibsted Grotesk, DM Mono) are used under the SIL Open Font License.</p>
+    <div class="foot-row">
+      <p class="made">Made by <a href="__AUTHOR_URL__">Luke Redpath</a></p>
+      <fieldset class="theme-picker" hidden>
+        <legend class="sr-only">Colour theme</legend>
+        <label><input type="radio" name="theme" value="system" checked><span>System</span></label>
+        <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+        <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+      </fieldset>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var picker = document.querySelector(".theme-picker");
+    var current = root.dataset.theme || "system";
+    picker.querySelector('input[value="' + current + '"]').checked = true;
+    picker.hidden = false;
+    picker.addEventListener("change", function (event) {
+      var theme = event.target.value;
+      if (theme === "system") delete root.dataset.theme;
+      else root.dataset.theme = theme;
+      try {
+        if (theme === "system") localStorage.removeItem("theme");
+        else localStorage.setItem("theme", theme);
+      } catch (e) {}
+    });
+  })();
+</script>
+
+</body>
+</html>
