@@ -85,9 +85,7 @@ export function findForwarderResults(headers: Header[], trusted: string[]): Forw
   if (aars.length !== 1) return { ok: false, detail: "expected exactly one ARC-Authentication-Results for the forwarder" };
   const results = parseAuthResults(aars[0]!.value, true);
   if (!results) return { ok: false, detail: "malformed ARC-Authentication-Results" };
-  // The results must be recorded by the forwarder's own server, not just sealed by it.
-  if (results.authserv !== forwarder.d && !results.authserv.endsWith(`.${forwarder.d}`)) {
-    return { ok: false, detail: "ARC results were not recorded by the forwarder" };
-  }
+  // The server name in these results is not compared with the seal's domain: providers name their
+  // servers differently, and the forwarder's seal already covers the results (RFC 8617).
   return { ok: true, forwarder: forwarder.d, results };
 }

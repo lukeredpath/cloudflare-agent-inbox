@@ -26,13 +26,18 @@
   3. The topmost ARC set is Cloudflare's own, and the set beneath it (matched by
      its `i=` instance, never by header order) is sealed by a trusted forwarder,
      with `cv=pass`. Instances must be contiguous and unduplicated.
-  4. The `ARC-Authentication-Results` for that instance exists exactly once and
-     was recorded by the forwarder's own server.
+  4. The `ARC-Authentication-Results` for that instance exists exactly once. The
+     forwarder's seal covers it, so nothing about the forwarder's server naming
+     is assumed.
   5. The message has exactly one `From` header, its address is on the lane's
      `forwarded_from` list, and the recorded results show one of that entry's
      required verdicts passing **aligned with the From domain**: `dmarc`
      (default, the strictest), `dkim`, or `spf`. A pass about some other domain
      does not count.
+
+  No mail provider is named in the code. A forwarder works if it seals its own ARC
+  set, records the original hop's verdicts in it, and sets the envelope sender to
+  an address you allow. Only one provider has been tested against real forwards.
 
   Path B is off unless the deployment lists trusted forwarders **and** the lane
   has `forwarded_from` entries. It trusts the forwarder's own record of the
