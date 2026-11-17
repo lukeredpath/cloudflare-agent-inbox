@@ -29,7 +29,7 @@ Run `npm test` and `npm run typecheck` before every commit. Node comes from
 - The real Wrangler config is rendered at build time and never committed.
 - Error messages and logs never include deployment values or message bodies.
 
-Local CLI: `npm run cli -- --help` (needs `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+Local CLI: `npm run cli -- --help` (needs `AGENT_INBOX_CLI_API_TOKEN` or `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
 `AGENT_INBOX_WORKER_NAME`, `AGENT_INBOX_MAIL_HOSTNAME`, only for commands that use them).
 
 ## Layout
@@ -41,7 +41,7 @@ Local CLI: `npm run cli -- --help` (needs `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_AC
   `unzip.ts`, `mcp.ts` (agent tools), `share.ts`, `purge.ts` (cron), `index.ts` (host-based routing).
 - `src/cli/`: `commands.ts` (logic), `program.ts` (commander wiring), `cloudflare.ts` and `node.ts`
   (the real API and terminal). Commands take a `CliContext`, so tests run them against local D1.
-- `migrations/`: D1 migrations, applied by `npm run migrate`.
+- `migrations/`: D1 migrations, applied by `npm run deploy`.
 - `scripts/`: build-time tooling (`render-config`, `pii-scan`).
 - `test/`: Vitest tests (run inside workerd); synthetic fixtures only.
 

@@ -53,20 +53,20 @@ export interface CloudflareConfig {
 }
 
 export function loadConfig(env: Record<string, string | undefined>): CloudflareConfig {
-  const wanted = {
-    apiToken: "CLOUDFLARE_API_TOKEN",
-    accountId: "CLOUDFLARE_ACCOUNT_ID",
-    workerName: "AGENT_INBOX_WORKER_NAME",
-    mailHostname: "AGENT_INBOX_MAIL_HOSTNAME",
-  } as const;
-  const missing = Object.values(wanted).filter((name) => !env[name]);
+  // The CLI can use a narrower token than the one used to deploy: AGENT_INBOX_CLI_API_TOKEN wins.
+  const apiToken = env.AGENT_INBOX_CLI_API_TOKEN || env.CLOUDFLARE_API_TOKEN;
+  const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+  const workerName = env.AGENT_INBOX_WORKER_NAME;
+  const mailHostname = env.AGENT_INBOX_MAIL_HOSTNAME;
+
+  const missing = [
+    ...(apiToken ? [] : ["AGENT_INBOX_CLI_API_TOKEN (or CLOUDFLARE_API_TOKEN)"]),
+    ...(accountId ? [] : ["CLOUDFLARE_ACCOUNT_ID"]),
+    ...(workerName ? [] : ["AGENT_INBOX_WORKER_NAME"]),
+    ...(mailHostname ? [] : ["AGENT_INBOX_MAIL_HOSTNAME"]),
+  ];
   if (missing.length) throw new CliError(`Missing environment variables: ${missing.join(", ")}`);
-  return {
-    apiToken: env[wanted.apiToken]!,
-    accountId: env[wanted.accountId]!,
-    workerName: env[wanted.workerName]!,
-    mailHostname: env[wanted.mailHostname]!,
-  };
+  return { apiToken: apiToken!, accountId: accountId!, workerName: workerName!, mailHostname: mailHostname! };
 }
 
 export function workersSecrets(

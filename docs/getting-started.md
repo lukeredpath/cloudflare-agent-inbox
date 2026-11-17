@@ -96,13 +96,16 @@ Two ways; **option A is the default** and needs nothing but this clone.
   records). The "Edit Cloudflare Workers" template is a good start; names in the
   dashboard may differ slightly. Keep it in your password manager, and use it only
   for deploys. Step 5 uses a narrower token.
-- [ ] Put your settings in the environment, or in a git-ignored `.env` file
-  (`cp .env.example .env`, then fill it in; prefer your password manager's CLI over
-  writing the token to disk):
+- [ ] Put your settings in the environment, or in a git-ignored `.env.deploy` file
+  (`cp .env.example .env.deploy`, then fill it in). Better: keep them in a
+  **1Password Environment** and mount it at `.env.deploy`, so the token is never
+  written to disk. Mount it at `.env.deploy`, not `.env`: Vitest and Wrangler
+  auto-read `.env`, and a mounted file can only be read by one process at a time.
 
 | Variable | Value |
 | --- | --- |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | your deploy token, and your account ID |
+| `AGENT_INBOX_CLI_API_TOKEN` | (step 5) the narrower token for the CLI; the CLI prefers it over the deploy token |
 | `AGENT_INBOX_WORKER_NAME` | the Worker's name; also the D1 database and R2 bucket name |
 | `AGENT_INBOX_MAIL_HOSTNAME` | your mail hostname |
 | `AGENT_INBOX_MCP_HOSTNAME` | your MCP hostname |
@@ -176,7 +179,7 @@ your full login. This is a different, narrower token from the deploy token.
 - [ ] Export, in your terminal (or load them with your password manager's CLI):
 
 ```sh
-export CLOUDFLARE_API_TOKEN=...
+export AGENT_INBOX_CLI_API_TOKEN=...             # or CLOUDFLARE_API_TOKEN
 export CLOUDFLARE_ACCOUNT_ID=...                 # on your zone's overview page
 export AGENT_INBOX_WORKER_NAME=...               # the Worker's name
 export AGENT_INBOX_MAIL_HOSTNAME=mail.example.com

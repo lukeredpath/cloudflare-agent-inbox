@@ -13,7 +13,7 @@ No Cloudflare credentials are ever stored in GitHub.
 
 The repository contains only `wrangler.example.jsonc`, a template whose
 angle-bracket tokens are placeholders. At deploy or build time `npm run render-config`
-fills them in from environment variables (or a git-ignored `.env`) and writes:
+fills them in from environment variables (or a git-ignored `.env.deploy`; see `.env.example`) and writes:
 
 - `dist/wrangler.jsonc`: the real config (git-ignored). Relative paths in it are
   already adjusted for its location.
@@ -26,7 +26,8 @@ the Worker's `vars`.
 
 ## Deployment variables
 
-Locally, set these in your environment or a git-ignored `.env` (see `.env.example`).
+Locally, set these in your environment or a git-ignored `.env.deploy` (see `.env.example`;
+a 1Password Environment mounted at that path works well).
 With Workers Builds, set them under the Worker's Settings > Build > Build variables
 and secrets, marked as secrets so they are masked in build logs.
 
@@ -75,7 +76,8 @@ subaddressing: `inbox+<token>@<mail hostname>`.
 
 ## The CLI's credentials
 
-The CLI uses a scoped Cloudflare API token passed as `CLOUDFLARE_API_TOKEN`
+The CLI uses a scoped Cloudflare API token passed as `AGENT_INBOX_CLI_API_TOKEN`
+(or `CLOUDFLARE_API_TOKEN` if that is not set)
 (for example from a secrets manager): D1 edit and Workers Scripts edit (for
 secrets) only. Do not use a full `wrangler login`, and never store it in the
 repository. It also needs `CLOUDFLARE_ACCOUNT_ID`, `AGENT_INBOX_WORKER_NAME` and
