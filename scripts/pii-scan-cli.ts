@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseDenylist, scan, type ScanFile } from "./pii-scan.ts";
@@ -35,7 +35,8 @@ if (process.argv.includes("--history")) {
   files.push({ path: "(git history)", content: log });
 }
 for (const path of process.argv.includes("--history") ? [] : paths) {
-  if (!existsSync(path)) continue;
+  // Skip anything that is not a plain file: reading a mounted secrets file (a FIFO) would block or prompt.
+  if (!existsSync(path) || !statSync(path).isFile()) continue;
   const buf = readFileSync(path);
   if (buf.includes(0)) continue; // binary
   files.push({ path, content: buf.toString("utf8") });

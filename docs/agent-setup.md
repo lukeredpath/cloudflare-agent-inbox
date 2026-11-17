@@ -89,7 +89,7 @@ Work through the guide's steps in order:
  - Step 2: confirm the hostnames with me.
  - Step 3: deploy from this checkout with `npm run deploy` (option A). I create the
    deploy token myself and put the settings in my environment or a git-ignored
-   .env; tell me what to set, never ask me to paste values. Explain the
+   .env.deploy; tell me what to set, never ask me to paste values. Explain the
    "Deploy plan" the script prints. Only discuss Workers Builds (option B) if I ask.
  - Step 4: Email Routing: the subdomain, subaddressing, and the single literal rule
    `inbox@<mail hostname>` to the Worker. Then run the guide's subaddressing

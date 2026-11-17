@@ -4,6 +4,8 @@ dist-check/
 .wrangler/
 .dev.vars
 .env
+.env.*
+!.env.example
 # Real deployment config (rendered at build time; never committed)
 wrangler.jsonc
 # Local-only material

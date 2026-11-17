@@ -36,6 +36,12 @@ describe("loadConfig", () => {
   it("reads the four variables", () => {
     expect(loadConfig(env)).toEqual({ apiToken: "t", accountId: "a", workerName: "w", mailHostname: "m.example.com" });
   });
+  it("prefers a dedicated CLI token over the deploy token", () => {
+    expect(loadConfig({ ...env, AGENT_INBOX_CLI_API_TOKEN: "narrow" }).apiToken).toBe("narrow");
+    expect(loadConfig({ ...env, AGENT_INBOX_CLI_API_TOKEN: "" }).apiToken).toBe("t");
+    const { CLOUDFLARE_API_TOKEN: _drop, ...onlyCli } = env;
+    expect(loadConfig({ ...onlyCli, AGENT_INBOX_CLI_API_TOKEN: "narrow" }).apiToken).toBe("narrow");
+  });
   it("names missing variables and never echoes values", () => {
     try {
       loadConfig({ CLOUDFLARE_API_TOKEN: "super-secret-token" });
@@ -45,8 +51,9 @@ describe("loadConfig", () => {
       expect(msg).toContain("CLOUDFLARE_ACCOUNT_ID");
       expect(msg).toContain("AGENT_INBOX_WORKER_NAME");
       expect(msg).not.toContain("super-secret-token");
-      expect(msg).not.toContain("CLOUDFLARE_API_TOKEN");
+      expect(msg).not.toMatch(/AGENT_INBOX_CLI_API_TOKEN/);
     }
+    expect(() => loadConfig({})).toThrow(/AGENT_INBOX_CLI_API_TOKEN \(or CLOUDFLARE_API_TOKEN\)/);
   });
 });
 
