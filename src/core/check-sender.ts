@@ -1,3 +1,7 @@
+import { findForwarderResults, parseAuthResults, parseTags, type ParsedAuthResults } from "./arc.ts";
+import { parseHeaders, type Header } from "./headers.ts";
+import type { ForwardedFromRule } from "./lane-config.ts";
+
 const CLOUDFLARE_AUTHSERV_ID = "mx.cloudflare.net";
 
 export function parseList(value: string | undefined): string[] {
@@ -19,39 +23,62 @@ export function extractAddress(header: string): string {
 
 export interface SenderPolicy {
   allowedSenders: string[];
+  /** Path A: domains whose DKIM pass, verified by Cloudflare, is accepted. */
   allowedDkimDomains: string[];
+  /** Path B: forwarders (e.g. a mailbox provider) whose ARC record of the original hop is trusted. */
+  trustedArcForwarders?: string[];
+  /** Path B: original senders this lane accepts, and what must have passed for each. */
+  forwardedFrom?: ForwardedFromRule[];
 }
 
 export type SenderVerdict =
   | { allowed: true; summary: string }
-  | { allowed: false; reason: "sender_not_allowed" | "auth_failed"; detail: string };
+  | {
+      allowed: false;
+      reason: "sender_not_allowed" | "auth_failed";
+      detail: string;
+      /** Authentication-header excerpt, only when the envelope sender was allowed. */
+      diagnostics?: string;
+    };
 
 /**
- * Accept only if the envelope sender is allowlisted AND Cloudflare verified a
- * DKIM signature from an allowlisted domain. The visible From header is never
- * trusted on its own.
+ * A message is accepted only if its envelope sender is allowlisted AND one of:
+ *
+ *  A. Cloudflare verified a DKIM signature from an allowlisted domain (mail you
+ *     compose or forward by hand, signed by your mail provider), or
+ *  B. a trusted forwarder's ARC record shows the original sender authenticated
+ *     (server-side forwarding rules add no signature of their own).
+ *
+ * The visible From header is never trusted on its own, and neither are the
+ * unsigned hints forwarders add.
  */
 export function checkSender(raw: Uint8Array, envelopeFrom: string, policy: SenderPolicy): SenderVerdict {
   if (!policy.allowedSenders.includes(envelopeFrom)) {
     return { allowed: false, reason: "sender_not_allowed", detail: "envelope sender not allowlisted" };
   }
-  if (policy.allowedDkimDomains.length === 0) {
-    return { allowed: false, reason: "auth_failed", detail: "no DKIM domains configured" };
-  }
 
-  const results = cloudflareAuthResults(raw);
-  if (!results) return { allowed: false, reason: "auth_failed", detail: "no Authentication-Results from Cloudflare" };
+  const headers = parseHeaders(raw);
+  const fail = (detail: string): SenderVerdict => ({ allowed: false, reason: "auth_failed", detail, diagnostics: excerpt(headers) });
 
-  const passed = [...results.matchAll(/\bdkim=pass\b[^;]*?\bheader\.d=([^\s;]+)/gi)].map((m) => m[1]!.toLowerCase());
-  const accepted = passed.find((d) => policy.allowedDkimDomains.includes(d));
-  if (!accepted) {
-    return {
-      allowed: false,
-      reason: "auth_failed",
-      detail: `no dkim=pass for an allowed domain (passed: ${passed.join(",") || "none"})`,
-    };
+  const forwardedEnabled = Boolean(policy.forwardedFrom?.length && policy.trustedArcForwarders?.length);
+  if (policy.allowedDkimDomains.length === 0 && !forwardedEnabled) return fail("no authentication method configured");
+
+  const results = firstCloudflareAuthResults(headers);
+  if (!results) return fail("no Authentication-Results from Cloudflare");
+
+  const detail: string[] = [];
+  if (policy.allowedDkimDomains.length) {
+    const passed = dkimPassDomains(results);
+    const accepted = passed.find((d) => policy.allowedDkimDomains.includes(d));
+    if (accepted) return { allowed: true, summary: `dkim=pass header.d=${accepted}` };
+    detail.push(`direct: no dkim=pass for an allowed domain (passed: ${passed.join(",") || "none"})`);
   }
-  return { allowed: true, summary: `dkim=pass header.d=${accepted}` };
+  if (forwardedEnabled) {
+    const forwarded = checkForwarded(headers, results, envelopeFrom, policy.trustedArcForwarders!, policy.forwardedFrom!);
+    if (forwarded.ok) return { allowed: true, summary: forwarded.summary };
+    detail.push(`forwarded: ${forwarded.detail}`);
+  }
+  return fail(detail.join("; "));
 }
 
 /**
@@ -59,15 +86,94 @@ export function checkSender(raw: Uint8Array, envelopeFrom: string, policy: Sende
  * supplied, so only the FIRST such header is trusted, and only if Cloudflare is
  * the authserv-id.
  */
-export function cloudflareAuthResults(raw: Uint8Array): string | null {
-  const text = new TextDecoder().decode(raw.subarray(0, Math.min(raw.byteLength, 65536)));
-  const headerBlock = text.split(/\r?\n\r?\n/, 1)[0] ?? "";
-  const unfolded = headerBlock.replace(/\r?\n[ \t]+/g, " ");
-  for (const line of unfolded.split(/\r?\n/)) {
-    const m = line.match(/^authentication-results:\s*(.*)$/i);
-    if (!m) continue;
-    const value = m[1]!.trim();
-    return value.toLowerCase().startsWith(CLOUDFLARE_AUTHSERV_ID + ";") ? value : null;
+function firstCloudflareAuthResults(headers: Header[]): ParsedAuthResults | null {
+  const first = headers.find((h) => h.name === "authentication-results");
+  if (!first || !first.value.toLowerCase().startsWith(`${CLOUDFLARE_AUTHSERV_ID};`)) return null;
+  return parseAuthResults(first.value, false);
+}
+
+const dkimPassDomains = (r: ParsedAuthResults) =>
+  r.results.filter((x) => x.method === "dkim" && x.result === "pass" && x.props["header.d"]).map((x) => x.props["header.d"]!.toLowerCase());
+
+/** Same domain, or one is a subdomain of the other (relaxed alignment). */
+const aligned = (a: string, b: string) => a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`);
+const domainOf = (address: string) => address.slice(address.lastIndexOf("@") + 1).toLowerCase();
+
+type Forwarded = { ok: true; summary: string } | { ok: false; detail: string };
+
+function checkForwarded(
+  headers: Header[],
+  cloudflare: ParsedAuthResults,
+  envelopeFrom: string,
+  trusted: string[],
+  rules: ForwardedFromRule[],
+): Forwarded {
+  if (!cloudflare.results.some((r) => r.method === "arc" && r.result === "pass")) {
+    return { ok: false, detail: "Cloudflare did not report arc=pass" };
   }
-  return null;
+  // The forwarder rewrites the envelope sender to the mailbox owner, and SPF must
+  // vouch for it: this stops a genuine ARC-sealed message being replayed from elsewhere.
+  const spfOk = cloudflare.results.some(
+    (r) => r.method === "spf" && r.result === "pass" && r.props["smtp.mailfrom"]?.toLowerCase() === envelopeFrom,
+  );
+  if (!spfOk) return { ok: false, detail: "no spf=pass for the envelope sender" };
+
+  const lookup = findForwarderResults(headers, trusted);
+  if (!lookup.ok) return lookup;
+
+  const froms = headers.filter((h) => h.name === "from");
+  if (froms.length !== 1) return { ok: false, detail: "expected exactly one From header" };
+  const fromAddress = normaliseAddress(extractAddress(froms[0]!.value));
+  const rule = rules.find((r) => r.from === fromAddress);
+  if (!rule) return { ok: false, detail: "From address not accepted on this lane" };
+  const fromDomain = domainOf(fromAddress);
+
+  for (const verdict of rule.require) {
+    for (const r of lookup.results.results.filter((x) => x.method === verdict && x.result === "pass")) {
+      if (verdict === "dmarc" && r.props["header.from"]?.toLowerCase() === fromDomain) {
+        return { ok: true, summary: `arc via ${lookup.forwarder}: dmarc=pass header.from=${fromDomain}` };
+      }
+      if (verdict === "dkim" && r.props["header.d"] && aligned(r.props["header.d"].toLowerCase(), fromDomain)) {
+        return { ok: true, summary: `arc via ${lookup.forwarder}: dkim=pass header.d=${r.props["header.d"].toLowerCase()}` };
+      }
+      if (verdict === "spf" && r.props["smtp.mailfrom"] && aligned(domainOf(r.props["smtp.mailfrom"].toLowerCase()), fromDomain)) {
+        return { ok: true, summary: `arc via ${lookup.forwarder}: spf=pass aligned with ${fromDomain}` };
+      }
+    }
+  }
+  return { ok: false, detail: `forwarder did not record an aligned ${rule.require.join(" or ")} pass` };
+}
+
+/**
+ * A compact, size-capped view of the authentication headers, for diagnosing
+ * why a likely genuine message failed. Headers only: never a body.
+ */
+function excerpt(headers: Header[]): string {
+  const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
+  const lines: string[] = [];
+  const first = headers.find((h) => h.name === "authentication-results");
+  if (first) lines.push(`first Authentication-Results: ${cut(first.value, 500)}`);
+  const seals = headers
+    .filter((h) => h.name === "arc-seal")
+    .map((h) => parseTags(h.value))
+    .map((t) => `i=${t.i} d=${t.d} cv=${t.cv}`);
+  if (seals.length) lines.push(`ARC seals: ${seals.join("; ")}`);
+  for (const h of headers.filter((x) => x.name === "arc-authentication-results").slice(0, 4)) {
+    lines.push(`ARC-Authentication-Results: ${cut(h.value, 400)}`);
+  }
+  const sigs = headers
+    .filter((h) => h.name === "dkim-signature")
+    .slice(0, 5)
+    .map((h) => parseTags(h.value))
+    .map((t) => `d=${t.d} s=${t.s}`);
+  if (sigs.length) lines.push(`DKIM signatures: ${sigs.join("; ")}`);
+  const froms = headers.filter((h) => h.name === "from");
+  lines.push(`From headers: ${froms.length}${froms[0] ? `, domain ${domainOf(normaliseAddress(extractAddress(froms[0].value)))}` : ""}`);
+  return cut(lines.join("\n"), 2000);
+}
+
+/** The first Authentication-Results value, only if Cloudflare wrote it. Kept for callers that need the raw text. */
+export function cloudflareAuthResults(raw: Uint8Array): string | null {
+  const first = parseHeaders(raw).find((h) => h.name === "authentication-results");
+  return first && first.value.toLowerCase().startsWith(`${CLOUDFLARE_AUTHSERV_ID};`) ? first.value : null;
 }

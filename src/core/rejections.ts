@@ -22,6 +22,8 @@ export interface NewRejection {
   headerFrom: string | null;
   reason: RejectionReason;
   detail?: string | null;
+  /** Authentication-header excerpt; only for failures where the envelope sender was allowed. */
+  diagnostics?: string | null;
   laneId?: string | null;
 }
 
@@ -46,8 +48,8 @@ export async function logRejection(db: Db, r: NewRejection, cap: number, now: Da
     ]);
     if ((row?.n ?? 0) >= cap) return false;
     await db.run(
-      `INSERT INTO rejections (id, received_at, bucket, recipient_hint, envelope_from, header_from, reason, detail, lane_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO rejections (id, received_at, bucket, recipient_hint, envelope_from, header_from, reason, detail, diagnostics, lane_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         ulid(now.getTime()),
         now.toISOString(),
@@ -57,6 +59,7 @@ export async function logRejection(db: Db, r: NewRejection, cap: number, now: Da
         r.headerFrom?.slice(0, 320) ?? null,
         r.reason,
         r.detail?.slice(0, 300) ?? null,
+        r.diagnostics?.slice(0, 2000) ?? null,
         r.laneId ?? null,
       ],
     );
@@ -75,6 +78,7 @@ export interface RejectionRow {
   header_from: string | null;
   reason: string;
   detail: string | null;
+  diagnostics: string | null;
   lane_id: string | null;
   lane_slug: string | null;
 }

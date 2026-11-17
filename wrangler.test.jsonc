@@ -9,7 +9,8 @@
     "MCP_HOSTNAME": "mcp.example.com",
     "SHARE_HOSTNAME": "files.example.com",
     "DEFAULT_ALLOWED_SENDERS": "sender@example.com",
-    "ALLOWED_DKIM_DOMAINS": "example.com"
+    "ALLOWED_DKIM_DOMAINS": "example.com",
+    "TRUSTED_ARC_FORWARDERS": "forwarder.example.net"
   },
   "d1_databases": [{ "binding": "DB", "database_name": "test-db", "database_id": "test-db", "migrations_dir": "migrations" }],
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "test-bucket" }]
