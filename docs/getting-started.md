@@ -224,8 +224,18 @@ npm run cli -- lanes update receipts --forwarded-from orders@shop.example.net
   the provider records: `--forwarded-from orders@shop.example.net=dmarc,spf`.
 - The envelope sender must still be one of your allowed senders: forwarding rules
   rewrite it to the mailbox owner.
-- Only providers that add an ARC set work. iCloud Mail does; behaviour of other
-  providers is untested here.
+- The code names no mail provider: the forwarder is whatever you list. It works
+  with any forwarder that does all three of these, which you can check in a
+  forwarded message's headers:
+  1. adds an **ARC set sealed by its own domain** (`ARC-Seal: ...; d=<forwarder>`),
+  2. records the original hop's results in that set's `ARC-Authentication-Results`
+     (`dmarc=pass header.from=...`), and
+  3. sets the **envelope sender to an address you allow**. Rules that keep the
+     original sender, or rewrite it to a different address for every message
+     (SRS), will not match an allowlist.
+- Only iCloud Mail has been tested against real forwards. Other providers should
+  work if they meet the three points; if one does not,
+  `rejections list --diagnostics` shows what it sent.
 
 Then:
 

@@ -36,6 +36,30 @@ describe("path B: mail forwarded by a trusted forwarder", () => {
     expect(check(buildEml({ from: FORWARDED_ORIGIN.from, auth: shuffled })).allowed).toBe(true);
   });
 
+  describe("is not tied to any one provider", () => {
+    it("accepts a forwarder whose server name has nothing to do with its seal domain, with a version token", () => {
+      const raw = forwarded({ forwarder: "mailhost.example.org", forwarderServer: "mx.somewhere-else.example.net 1" });
+      expect(check(raw, { trustedArcForwarders: ["mailhost.example.org"] })).toEqual({
+        allowed: true,
+        summary: "arc via mailhost.example.org: dmarc=pass header.from=billing.example.org",
+      });
+    });
+
+    it("trusts several forwarders independently, and names the one that vouched", () => {
+      const trusted = ["first.example.net", "second.example.org"];
+      expect(check(forwarded({ forwarder: "second.example.org" }), { trustedArcForwarders: trusted })).toMatchObject({
+        allowed: true,
+        summary: expect.stringContaining("second.example.org"),
+      });
+      expect(check(forwarded({ forwarder: "first.example.net" }), { trustedArcForwarders: trusted }).allowed).toBe(true);
+      expect(check(forwarded({ forwarder: "third.example.com" }), { trustedArcForwarders: trusted }).allowed).toBe(false);
+    });
+
+    it("depends on nothing but the configured forwarder list: an empty list turns the path off", () => {
+      expect(check(forwarded(), { trustedArcForwarders: [] }).allowed).toBe(false);
+    });
+  });
+
   it("ignores unsigned forwarder hints entirely", () => {
     const noHints = arcLines().filter((l) => !/^(X-Forward-Action|Original-Recipient)/.test(l));
     expect(check(buildEml({ from: FORWARDED_ORIGIN.from, auth: noHints })).allowed).toBe(true);
@@ -81,10 +105,6 @@ describe("path B: mail forwarded by a trusted forwarder", () => {
 
     it("when the forwarder's own set did not validate", () => {
       rejects(forwarded({ forwarderCv: "fail" }), /did not validate/);
-    });
-
-    it("when the results were not recorded by the forwarder's server", () => {
-      rejects(forwarded({ forwarderServer: "mx.attacker.example.org" }), /not recorded by the forwarder/);
     });
 
     it("when instances are duplicated, missing, or malformed", () => {
