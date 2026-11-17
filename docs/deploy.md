@@ -1,26 +1,34 @@
-# Deploying with Workers Builds
+# Deploying
 
-Deployment is handled by Cloudflare Workers Builds, connected to this
-repository. No Cloudflare credentials are stored in GitHub.
+There are two ways to deploy. Both use the same settings and render the same config.
+No Cloudflare credentials are ever stored in GitHub.
+
+- **Local (default):** `npm run deploy` from a clone, with a deploy token in your
+  environment. No fork or GitHub account needed. See
+  [getting-started.md](getting-started.md#3-deploy).
+- **Workers Builds (optional):** deploy on push from a repository you connect. This
+  needs your own copy of the repo.
 
 ## How deployment values reach the build
 
 The repository contains only `wrangler.example.jsonc`, a template whose
-angle-bracket tokens are placeholders. At build time `npm run render-config`
-fills them in from build variables and writes:
+angle-bracket tokens are placeholders. At deploy or build time `npm run render-config`
+fills them in from environment variables (or a git-ignored `.env`) and writes:
 
 - `dist/wrangler.jsonc`: the real config (git-ignored). Relative paths in it are
   already adjusted for its location.
 - `.wrangler/deploy/config.json`: a redirect that makes a plain
   `wrangler deploy` use the rendered file.
 
-Build variables are build-only and are not exposed to the Worker at runtime;
-the rendered config is what puts values into the Worker's `vars`.
+With Workers Builds, the variables are build variables, which are build-only and
+not exposed to the Worker at runtime; the rendered config is what puts values into
+the Worker's `vars`.
 
-## Build variables
+## Deployment variables
 
-Set these under the Worker's Settings > Build > Build variables and secrets.
-Mark them as secrets so they are masked in build logs.
+Locally, set these in your environment or a git-ignored `.env` (see `.env.example`).
+With Workers Builds, set them under the Worker's Settings > Build > Build variables
+and secrets, marked as secrets so they are masked in build logs.
 
 | Variable | Meaning |
 | --- | --- |
@@ -37,18 +45,15 @@ hostnames must differ from each other.
 
 ## Commands
 
-- **Build command:** `npm run build` (runs the tests, then renders the config)
-- **Deploy command:** `npm run deploy` (applies D1 migrations, then deploys)
-
-`wrangler d1 migrations apply` does not follow the redirect file, so
-`npm run migrate` passes the rendered config explicitly with `-c`.
-
-### First deploy
-
-D1 and R2 are provisioned by Wrangler on the first `wrangler deploy`, which
-cannot happen after a migration step that needs the database. For the first
-deploy only, set the deploy command to `npx wrangler deploy`, then switch it to
-`npm run deploy` once the database exists.
+- **Local:** `npm run deploy`. It renders the config, then orders the steps by whether
+  the D1 database exists (`wrangler d1 list`): on a fresh account it deploys first,
+  which provisions D1 and R2, then migrates; otherwise it migrates first, then
+  deploys. `wrangler d1 migrations apply` does not follow the redirect file, so the
+  migrate step passes the rendered config explicitly with `-c`.
+- **Workers Builds:** build command `npm run build` (runs the tests, then renders
+  the config), deploy command `npm run deploy`. If the build token cannot list
+  databases the script assumes the database exists, so on a fresh account run
+  `npx wrangler deploy` once as the deploy command, then switch back.
 
 ## Email Routing
 
