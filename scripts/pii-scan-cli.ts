@@ -25,7 +25,16 @@ const paths = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--
   .filter(Boolean);
 
 const files: ScanFile[] = [];
-for (const path of paths) {
+if (process.argv.includes("--history")) {
+  // Every commit on every branch, including deleted files and old versions.
+  // Author metadata is deliberately not scanned.
+  const log = execFileSync("git", ["log", "--all", "-p", "--format=commit %H%n%s%n%b", "--no-color"], {
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+  });
+  files.push({ path: "(git history)", content: log });
+}
+for (const path of process.argv.includes("--history") ? [] : paths) {
   if (!existsSync(path)) continue;
   const buf = readFileSync(path);
   if (buf.includes(0)) continue; // binary
