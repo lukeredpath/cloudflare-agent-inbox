@@ -8,6 +8,12 @@ lanes, agent tokens and secrets.
 > sponsored by Cloudflare. It runs on Cloudflare's developer platform and uses
 > the name descriptively.
 
+> **Status: early.** Built for the author's own use. It is covered by an extensive
+> test suite using synthetic mail, but has had little real-world use so far, and has
+> been checked against only one mail provider's real forwarding behaviour (iCloud
+> Mail). Expect rough edges and breaking changes, and read
+> [docs/security.md](docs/security.md) before pointing an agent at real mail.
+
 You forward chosen emails (receipts, invoices, notifications) from your own
 mailbox to a lane's unguessable address. The Worker checks that the mail really
 came from you, turns it into clean plain text, stores the original, and makes it
@@ -45,7 +51,8 @@ agent-inbox CLI (your machine) ─► Cloudflare API: D1 and Workers secrets
   random bits. Email Routing needs a single literal rule for
   `inbox@<mail hostname>`, with subaddressing enabled.
 - **No AI in the pipeline.** Conversion to text is deterministic: HTML is
-  stripped (including hidden content), zero-width and bidi characters are
+  converted to text (removal of hidden text is best effort: it catches common
+  tricks, not every one), zero-width and bidi characters are
   removed, text is NFKC-normalised, links become `text (domain)`.
 - **Agents** get a bearer token and four tools: `list_messages`, `get_message`,
   `create_share_link` and `mark_processed`. Body text and other third-party
