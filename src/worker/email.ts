@@ -18,6 +18,7 @@ import {
 import { ulid } from "../core/ulid.ts";
 import type { Env } from "./env.ts";
 import { IngestError, ingest, type IngestedAttachment } from "./ingest.ts";
+import { logEvent, type LogFields } from "./log.ts";
 import { runTransforms } from "./transforms.ts";
 
 /** Objects written per message, kept inside the Free plan's subrequest budget. */
@@ -54,16 +55,27 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
   const headerFrom = normaliseAddress(extractAddress(message.headers.get("from") ?? "")) || null;
   const base = { recipientHint: recipientHint(message.to), envelopeFrom, headerFrom };
   let authenticated = false;
+  let laneId: string | null = null;
+
+  // One structured line per message with its outcome, so Workers Logs alone can show what
+  // happened. Metadata only: no addresses, subjects or content.
+  const started = Date.now();
+  const log = (outcome: "accepted" | "rejected" | "error", extra: LogFields = {}) =>
+    logEvent("email", { outcome, lane: laneId, bytes: message.rawSize, ms: Date.now() - started, ...extra }, outcome === "error" ? "error" : "log");
 
   try {
     const token = parseRecipient(message.to, env.MAIL_HOSTNAME);
     const lane = token ? await getLaneByToken(db, token) : null;
     if (!lane) {
+      log("rejected", { reason: "unknown_address" });
       await logRejection(db, { ...base, bucket: "probe", reason: "unknown_address" }, cap);
       return;
     }
-    const reject = (reason: RejectionReason, detail?: string, diagnostics?: string) =>
-      logRejection(db, { ...base, bucket: "lane", reason, detail, diagnostics, laneId: lane.id }, cap);
+    laneId = lane.id;
+    const reject = (reason: RejectionReason, detail?: string, diagnostics?: string) => {
+      log("rejected", { reason });
+      return logRejection(db, { ...base, bucket: "lane", reason, detail, diagnostics, laneId: lane.id }, cap);
+    };
 
     // Cheap size check first, before reading the body.
     const limit = Math.min(lane.maxBytes, HARD_MAX_MESSAGE_BYTES);
@@ -96,18 +108,19 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
       throw e;
     }
 
-    await storeMessage(env, db, lane, {
+    const files = await storeMessage(env, db, lane, {
       raw,
       envelopeFrom,
       headerFrom,
       authSummary: verdict.summary,
       ingested,
     });
+    log("accepted", { path: verdict.path, files });
   } catch (e) {
-    // Metadata only: never message content or deployment values.
-    console.error(JSON.stringify({ event: "email_error", error: e instanceof Error ? e.name : "unknown", authenticated }));
-    // A verified forward that we could not store must not vanish silently.
-    if (authenticated) message.setReject("Temporary processing failure");
+    log("error", { error: e instanceof Error ? e.name : "unknown", authenticated });
+    // A verified forward that we could not store must not vanish silently. This is a permanent
+    // rejection, so the sender is told to resend rather than that it will be retried.
+    if (authenticated) message.setReject("The message could not be processed. Please send it again.");
   }
 }
 
@@ -122,7 +135,7 @@ async function storeMessage(
     authSummary: string;
     ingested: Awaited<ReturnType<typeof ingest>>;
   },
-): Promise<void> {
+): Promise<number> {
   const messageId = ulid();
   const prefix = `lanes/${lane.id}/${messageId}`;
   const files: StoredFile[] = [];
@@ -185,6 +198,7 @@ async function storeMessage(
       },
       attachments,
     );
+    return files.length;
   } catch (e) {
     // Nothing partial is left behind.
     await env.BUCKET.delete(written).catch(() => {});

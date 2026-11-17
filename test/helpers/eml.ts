@@ -1,8 +1,8 @@
 const CRLF = "\r\n";
 
-export const AUTH_PASS = (domain = "example.com") =>
+export const AUTH_PASS = (domain = "example.com", mailfrom = `sender@${domain}`) =>
   `Authentication-Results: mx.cloudflare.net; dkim=pass header.d=${domain} header.s=sig1 header.b=abc;${CRLF}` +
-  `\tdmarc=pass header.from=${domain} policy.dmarc=none; spf=pass smtp.mailfrom=sender@${domain}`;
+  `\tdmarc=pass header.from=${domain} policy.dmarc=none; spf=pass smtp.mailfrom=${mailfrom}`;
 export const AUTH_NONE =
   "Authentication-Results: mx.cloudflare.net; dkim=none; dmarc=none header.from=example.com; spf=softfail smtp.mailfrom=sender@example.com";
 export const AUTH_FORGED = "Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.com header.s=sig1";

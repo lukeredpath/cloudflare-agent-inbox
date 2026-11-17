@@ -1,6 +1,7 @@
 import { d1Db, type Db } from "../core/db.ts";
 import { purgeRejections } from "../core/rejections.ts";
 import type { Env } from "./env.ts";
+import { logEvent } from "./log.ts";
 
 /** Messages purged per batch, and batches per run, sized for the Free plan's 50-subrequest budget. */
 const BATCH = 10;
@@ -9,30 +10,63 @@ const MAX_BATCHES = 5;
 /**
  * Daily housekeeping: expired share links, messages past their lane's
  * retention, soft-deleted messages (with their R2 objects), and old rejections.
+ *
+ * Each step runs on its own, so one failure (say, an R2 outage) cannot stop the
+ * others. Failures are logged by step name, and the run is failed at the end so
+ * Cloudflare shows the cron as errored.
  */
 export async function purge(env: Env, now: Date = new Date()): Promise<{ removed: number }> {
   const db = d1Db(env.DB);
   const iso = now.toISOString();
+  const failed: string[] = [];
+  const counts = { shares: 0, expired: 0, removed: 0, rejections: 0 };
 
-  await db.run("DELETE FROM shares WHERE expires_at < ?", [iso]);
+  const step = async (name: string, fn: () => Promise<void>) => {
+    try {
+      await fn();
+    } catch (e) {
+      failed.push(name);
+      logEvent("purge_step_failed", { step: name, error: e instanceof Error ? e.name : "unknown" }, "error");
+    }
+  };
+
+  await step("shares", async () => {
+    counts.shares = (await db.run("DELETE FROM shares WHERE expires_at < ?", [iso])).changes;
+  });
 
   // Retention is per lane. `keep` exempts a message. Timestamps are ISO-8601, so they compare as text.
-  await db.run(
-    `UPDATE messages SET deleted_at = ?1
-      WHERE deleted_at IS NULL AND keep = 0
-        AND received_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-' || (SELECT retention_days FROM lanes l WHERE l.id = messages.lane_id) || ' days')`,
-    [iso],
-  );
+  await step("retention", async () => {
+    counts.expired = (
+      await db.run(
+        `UPDATE messages SET deleted_at = ?1
+          WHERE deleted_at IS NULL AND keep = 0
+            AND received_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-' || (SELECT retention_days FROM lanes l WHERE l.id = messages.lane_id) || ' days')`,
+        [iso],
+      )
+    ).changes;
+  });
 
-  let removed = 0;
-  for (let i = 0; i < MAX_BATCHES; i++) {
-    const n = await removeDeleted(env, db);
-    removed += n;
-    if (n < BATCH) break;
-  }
+  await step("messages", async () => {
+    for (let i = 0; i < MAX_BATCHES; i++) {
+      const n = await removeDeleted(env, db);
+      counts.removed += n;
+      if (n < BATCH) break;
+    }
+  });
 
-  await purgeRejections(db, now);
-  return { removed };
+  await step("rejections", async () => {
+    counts.rejections = await purgeRejections(db, now);
+  });
+
+  logEvent("purge", {
+    expired_links: counts.shares,
+    expired_messages: counts.expired,
+    removed_messages: counts.removed,
+    removed_rejections: counts.rejections,
+    failed_steps: failed,
+  });
+  if (failed.length) throw new Error(`Purge steps failed: ${failed.join(", ")}`);
+  return { removed: counts.removed };
 }
 
 async function removeDeleted(env: Env, db: Db): Promise<number> {

@@ -24,7 +24,7 @@ export interface McpContext {
   db: Db;
   agent: Agent;
   shareHostname: string;
-  log: (msg: string) => void;
+  log: (fields: { tool: string; outcome: "ok" | "refused" | "internal_error" }) => void;
 }
 
 const read = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
@@ -49,10 +49,10 @@ export function buildServer(ctx: McpContext): McpServer {
     async (args: A): Promise<CallToolResult> => {
       try {
         const result = await fn(args);
-        ctx.log(`tool=${tool} ok`);
+        ctx.log({ tool, outcome: "ok" });
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
       } catch (e) {
-        ctx.log(`tool=${tool} error=${e instanceof ToolError ? "refused" : "internal"}`);
+        ctx.log({ tool, outcome: e instanceof ToolError ? "refused" : "internal_error" });
         // Internal errors never leak detail to the agent.
         return { isError: true, content: [{ type: "text", text: e instanceof ToolError ? e.message : "Internal server error" }] };
       }

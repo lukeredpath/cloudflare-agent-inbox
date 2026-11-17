@@ -26,6 +26,7 @@ describe("path B: mail forwarded by a trusted forwarder", () => {
     expect(check(forwarded())).toEqual({
       allowed: true,
       summary: "arc via forwarder.example.net: dmarc=pass header.from=billing.example.org",
+      path: "forwarded",
     });
   });
 
@@ -42,6 +43,7 @@ describe("path B: mail forwarded by a trusted forwarder", () => {
       expect(check(raw, { trustedArcForwarders: ["mailhost.example.org"] })).toEqual({
         allowed: true,
         summary: "arc via mailhost.example.org: dmarc=pass header.from=billing.example.org",
+        path: "forwarded",
       });
     });
 

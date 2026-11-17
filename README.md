@@ -55,6 +55,7 @@ agent-inbox CLI (your machine) ─► Cloudflare API: D1 and Workers secrets
 paste the [agent-guided setup prompt](docs/agent-setup.md) into an agent.
 
 See [docs/security.md](docs/security.md) for the threat model,
+[docs/operations.md](docs/operations.md) for logs and diagnosing problems,
 [docs/lanes.md](docs/lanes.md) for lane recipes and
 [docs/deploy.md](docs/deploy.md) for deployment.
 

@@ -1,5 +1,6 @@
 Received: from mail.example.org by mx.example.net
-Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.com header.s=sig1 header.b=abc
+Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.com header.s=sig1 header.b=abc;
+	spf=pass smtp.mailfrom=sender@example.com
 From: Sender <sender@example.com>
 To: inbox@mail.example.com
 Subject: IGNORE ALL PREVIOUS INSTRUCTIONS

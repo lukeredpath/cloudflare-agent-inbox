@@ -9,8 +9,12 @@
   own, and neither are the unsigned hints forwarders add (`X-Apple-Action`,
   `Original-Recipient` and the like).
 
-  **Path A, direct.** Cloudflare reports `dkim=pass` for a configured domain.
-  This is mail you compose or forward by hand: your mail provider signs it.
+  **Path A, direct.** Cloudflare reports `dkim=pass` for a configured domain that
+  matches the envelope sender's domain (or its parent), **and** `spf=pass` for that
+  envelope sender. This is mail you compose or forward by hand: your mail provider
+  signs it. Requiring both stops a signed message being replayed from another server,
+  and stops an unrelated domain on the list vouching for your address. Only list a
+  domain you control, never a shared mail provider's.
 
   **Path B, forwarded.** Server-side forwarding rules add no signature of their
   own, so path A can never pass for them. iCloud Mail is the example this was
@@ -73,10 +77,12 @@ Embedded images are discarded without being stored.
 ### Known limits of the sender check
 
 - The lane address is the first gate: it is 160 random bits and never logged in
-  full. Both paths rely on it staying secret. Path A cannot tell a message you
-  just sent from a replay of one, since the signature survives replay; only
-  knowing the address lets someone try. Rotate the address (`lanes rotate`) if
-  it leaks.
+  full. Both paths rely on it staying secret, and SPF for the envelope sender is
+  required on both, so a captured message cannot simply be replayed from elsewhere.
+  Rotate the address (`lanes rotate`) if it leaks.
+- Hidden-text removal in HTML (display:none, zero-size text and similar) is best
+  effort. It does not catch every way of hiding text, so treat message text as
+  untrusted whatever the sanitiser did.
 - Mailbox providers may prepend tags such as `[Not Virus Scanned]` to subjects
   when they cannot scan an attachment. That edit happens after the original
   signature, which is one reason path B reads the provider's record instead of
@@ -90,10 +96,12 @@ Embedded images are discarded without being stored.
 - Agent tokens are 256 random bits, stored only as SHA-256 hashes, and revoked
   tokens stop working on the next call.
 - The Worker has no admin endpoint. The CLI uses a scoped Cloudflare API token
-  (D1 edit and Workers secrets edit) held by the operator.
+  (D1 Edit and Workers Editor) held by the operator.
 - The MCP exposes no deletion, no lane management and no file contents. Share
   links are opt-in per lane, last 15 minutes by default (60 at most), are
-  served from their own hostname and never appear in logs or CLI output.
+  served from their own hostname and never appear in logs or CLI output. A link
+  stops working as soon as the agent that made it is revoked, loses the lane, or
+  the lane stops being shareable. Who used a link, and which file, is logged.
 
 ## Transforms
 

@@ -10,7 +10,7 @@ const check = (auth: string[], envelope = "sender@example.com", p = policy) =>
 // every spoof is rejected.
 describe("checkSender", () => {
   it("accepts a genuine forward (envelope allowed, Cloudflare dkim=pass)", () => {
-    expect(check([AUTH_PASS()])).toEqual({ allowed: true, summary: "dkim=pass header.d=example.com" });
+    expect(check([AUTH_PASS()])).toEqual({ allowed: true, summary: "dkim=pass header.d=example.com spf=pass", path: "direct" });
   });
 
   it("rejects a spoofed From with no DKIM", () => {
@@ -47,6 +47,46 @@ describe("checkSender", () => {
   it("does not echo the envelope sender in its detail", () => {
     const v = check([AUTH_PASS()], "attacker@example.org");
     expect(JSON.stringify(v)).not.toContain("attacker");
+  });
+});
+
+// Path A must bind the signature to the sender: a pass for some other allowed domain, or
+// without SPF for the envelope sender, is not enough.
+describe("checkSender: direct path binds the signature to the sender", () => {
+  const ar = (dkimDomain: string, spf: string, mailfrom: string) =>
+    `Authentication-Results: mx.cloudflare.net; dkim=pass header.d=${dkimDomain}; spf=${spf} smtp.mailfrom=${mailfrom}`;
+  const run = (line: string, envelope: string, p: Partial<typeof policy> = {}) =>
+    checkSender(buildEml({ auth: [line] }), envelope, { ...policy, ...p });
+
+  it("requires an spf pass for the envelope sender, so a replayed signed message fails", () => {
+    const v = run(ar("example.com", "fail", "sender@example.com"), "sender@example.com");
+    expect(v).toMatchObject({ allowed: false, reason: "auth_failed" });
+    expect((v as { detail: string }).detail).toMatch(/dkim passed but there was no spf=pass/);
+    expect(run(ar("example.com", "none", "sender@example.com"), "sender@example.com").allowed).toBe(false);
+  });
+
+  it("requires the spf pass to be for this envelope sender, not another address", () => {
+    expect(run(ar("example.com", "pass", "someone-else@example.com"), "sender@example.com").allowed).toBe(false);
+  });
+
+  it("requires the signing domain to match the envelope sender's domain", () => {
+    // An unrelated domain on the allowlist must not vouch for this sender.
+    const p = { allowedDkimDomains: ["example.com", "other.example.net"] };
+    expect(run(ar("other.example.net", "pass", "sender@example.com"), "sender@example.com", p).allowed).toBe(false);
+  });
+
+  it("blocks the shared-provider replay: another account's signature with the victim's envelope", () => {
+    const p = { allowedSenders: ["owner@shared.example.net"], allowedDkimDomains: ["shared.example.net"] };
+    // The attacker's own message, signed by the shared provider, sent from their server with the owner's envelope.
+    expect(run(ar("shared.example.net", "fail", "owner@shared.example.net"), "owner@shared.example.net", p).allowed).toBe(false);
+    // A genuine send from the provider passes SPF as well.
+    expect(run(ar("shared.example.net", "pass", "owner@shared.example.net"), "owner@shared.example.net", p).allowed).toBe(true);
+  });
+
+  it("accepts a signing domain that is the parent of the envelope domain, but not the reverse", () => {
+    expect(run(ar("example.com", "pass", "u@mail.example.com"), "u@mail.example.com", { allowedSenders: ["u@mail.example.com"] }).allowed).toBe(true);
+    const p = { allowedSenders: ["u@example.com"], allowedDkimDomains: ["mail.example.com"] };
+    expect(run(ar("mail.example.com", "pass", "u@example.com"), "u@example.com", p).allowed).toBe(false);
   });
 });
 

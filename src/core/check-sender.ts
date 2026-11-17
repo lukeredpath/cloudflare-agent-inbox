@@ -32,7 +32,7 @@ export interface SenderPolicy {
 }
 
 export type SenderVerdict =
-  | { allowed: true; summary: string }
+  | { allowed: true; summary: string; path: "direct" | "forwarded" }
   | {
       allowed: false;
       reason: "sender_not_allowed" | "auth_failed";
@@ -44,8 +44,9 @@ export type SenderVerdict =
 /**
  * A message is accepted only if its envelope sender is allowlisted AND one of:
  *
- *  A. Cloudflare verified a DKIM signature from an allowlisted domain (mail you
- *     compose or forward by hand, signed by your mail provider), or
+ *  A. Cloudflare verified a DKIM signature from an allowlisted domain that matches
+ *     the envelope sender's domain, AND an SPF pass for that envelope sender (mail
+ *     you compose or forward by hand, signed by your mail provider), or
  *  B. a trusted forwarder's ARC record shows the original sender authenticated
  *     (server-side forwarding rules add no signature of their own).
  *
@@ -68,14 +69,24 @@ export function checkSender(raw: Uint8Array, envelopeFrom: string, policy: Sende
 
   const detail: string[] = [];
   if (policy.allowedDkimDomains.length) {
+    // The signing domain must be the envelope sender's own domain (or its parent), and SPF must
+    // vouch for the envelope sender. Without both, a signed message could be replayed from
+    // elsewhere, or a signature from an unrelated domain on the list could vouch for anyone.
+    const envelopeDomain = domainOf(envelopeFrom);
     const passed = dkimPassDomains(results);
-    const accepted = passed.find((d) => policy.allowedDkimDomains.includes(d));
-    if (accepted) return { allowed: true, summary: `dkim=pass header.d=${accepted}` };
-    detail.push(`direct: no dkim=pass for an allowed domain (passed: ${passed.join(",") || "none"})`);
+    const accepted = passed.find((d) => policy.allowedDkimDomains.includes(d) && isSameOrParent(d, envelopeDomain));
+    if (accepted && spfPassesFor(results, envelopeFrom)) {
+      return { allowed: true, summary: `dkim=pass header.d=${accepted} spf=pass`, path: "direct" };
+    }
+    detail.push(
+      accepted
+        ? "direct: dkim passed but there was no spf=pass for the envelope sender"
+        : `direct: no dkim=pass aligned with the envelope sender for an allowed domain (passed: ${passed.join(",") || "none"})`,
+    );
   }
   if (forwardedEnabled) {
     const forwarded = checkForwarded(headers, results, envelopeFrom, policy.trustedArcForwarders!, policy.forwardedFrom!);
-    if (forwarded.ok) return { allowed: true, summary: forwarded.summary };
+    if (forwarded.ok) return { allowed: true, summary: forwarded.summary, path: "forwarded" };
     detail.push(`forwarded: ${forwarded.detail}`);
   }
   return fail(detail.join("; "));
@@ -95,6 +106,13 @@ function firstCloudflareAuthResults(headers: Header[]): ParsedAuthResults | null
 const dkimPassDomains = (r: ParsedAuthResults) =>
   r.results.filter((x) => x.method === "dkim" && x.result === "pass" && x.props["header.d"]).map((x) => x.props["header.d"]!.toLowerCase());
 
+/** True if `domain` is `parent` or a subdomain of it. */
+const isSameOrParent = (parent: string, domain: string) => domain === parent || domain.endsWith(`.${parent}`);
+
+/** Cloudflare's own SPF result: a pass for exactly this envelope sender. */
+const spfPassesFor = (r: ParsedAuthResults, envelopeFrom: string) =>
+  r.results.some((x) => x.method === "spf" && x.result === "pass" && x.props["smtp.mailfrom"]?.toLowerCase() === envelopeFrom);
+
 /** Same domain, or one is a subdomain of the other (relaxed alignment). */
 const aligned = (a: string, b: string) => a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`);
 const domainOf = (address: string) => address.slice(address.lastIndexOf("@") + 1).toLowerCase();
@@ -113,10 +131,7 @@ function checkForwarded(
   }
   // The forwarder rewrites the envelope sender to the mailbox owner, and SPF must
   // vouch for it: this stops a genuine ARC-sealed message being replayed from elsewhere.
-  const spfOk = cloudflare.results.some(
-    (r) => r.method === "spf" && r.result === "pass" && r.props["smtp.mailfrom"]?.toLowerCase() === envelopeFrom,
-  );
-  if (!spfOk) return { ok: false, detail: "no spf=pass for the envelope sender" };
+  if (!spfPassesFor(cloudflare, envelopeFrom)) return { ok: false, detail: "no spf=pass for the envelope sender" };
 
   const lookup = findForwarderResults(headers, trusted);
   if (!lookup.ok) return lookup;

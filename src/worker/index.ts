@@ -2,6 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { d1Db } from "../core/db.ts";
 import { authenticateAgent } from "./auth.ts";
 import { handleEmail } from "./email.ts";
+import { logEvent } from "./log.ts";
 import type { Env } from "./env.ts";
 import { buildServer } from "./mcp.ts";
 import { purge } from "./purge.ts";
@@ -26,7 +27,7 @@ async function handleMcp(request: Request, env: Env): Promise<Response> {
     db,
     agent,
     shareHostname: env.SHARE_HOSTNAME,
-    log: (m) => console.log(`agent=${agent.name} ${m}`),
+    log: (f) => logEvent("mcp", { agent: agent.id, ...f }, f.outcome === "internal_error" ? "error" : "log"),
   });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);

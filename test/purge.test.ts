@@ -89,7 +89,7 @@ describe("scheduled purge", () => {
     await insertMessage(db, message(lane.id, "m", daysAgo(1)), []);
     await db.run("UPDATE messages SET deleted_at = ?", [new Date().toISOString()]);
     const failing = testEnv({ BUCKET: { delete: () => Promise.reject(new Error("r2 down")) } });
-    await expect(purge(failing)).rejects.toThrow("r2 down");
+    await expect(purge(failing)).rejects.toThrow("Purge steps failed: messages");
     expect(await ids()).toEqual(["m"]);
     await purge(env);
     expect(await ids()).toEqual([]);

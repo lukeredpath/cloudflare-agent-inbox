@@ -121,7 +121,7 @@ Two ways; **option A is the default** and needs nothing but this clone.
 | `AGENT_INBOX_MCP_HOSTNAME` | your MCP hostname |
 | `AGENT_INBOX_SHARE_HOSTNAME` | your share hostname |
 | `AGENT_INBOX_DEFAULT_ALLOWED_SENDERS` | the address(es) you forward from, comma-separated |
-| `AGENT_INBOX_ALLOWED_DKIM_DOMAINS` | the domain your mail provider signs your own mail with |
+| `AGENT_INBOX_ALLOWED_DKIM_DOMAINS` | the domain your mail provider signs your own mail with. Use **your own domain**, never a shared mail provider's |
 | `AGENT_INBOX_TRUSTED_ARC_FORWARDERS` | your mailbox provider's domain if you will use its server-side forwarding rules (step 8); otherwise any domain you do not use |
 
 - [ ] Deploy:

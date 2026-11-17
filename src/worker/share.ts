@@ -2,6 +2,7 @@ import { d1Db } from "../core/db.ts";
 import { resolveShare } from "../core/shares.ts";
 import { SHARE_TOKEN_PATTERN } from "../core/tokens.ts";
 import type { Env } from "./env.ts";
+import { logEvent } from "./log.ts";
 
 const notFound = () => new Response("Not found", { status: 404, headers: { "cache-control": "no-store" } });
 
@@ -11,9 +12,17 @@ export async function handleShare(request: Request, env: Env): Promise<Response>
   if (request.method !== "GET" || !match || !SHARE_TOKEN_PATTERN.test(match[1]!)) return notFound();
 
   const share = await resolveShare(d1Db(env.DB), match[1]!);
-  if (!share) return notFound();
+  if (!share) {
+    logEvent("share", { outcome: "not_found" });
+    return notFound();
+  }
   const object = await env.BUCKET.get(share.r2_key);
-  if (!object) return notFound();
+  if (!object) {
+    logEvent("share", { outcome: "missing_object", attachment: share.attachment_id, agent: share.agent_id }, "warn");
+    return notFound();
+  }
+  // Who used the link, never the link itself.
+  logEvent("share", { outcome: "served", attachment: share.attachment_id, agent: share.agent_id, bytes: object.size });
 
   return new Response(object.body, {
     headers: {

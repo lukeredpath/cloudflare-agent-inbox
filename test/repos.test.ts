@@ -214,8 +214,10 @@ describe("shares", () => {
     await insertMessage(db, message(lane.id, "m"), [
       { id: "att", parentId: null, filename: "f.pdf", contentType: "application/pdf", size: 1, r2Key: "k", transformError: null },
     ]);
+    const { agent } = await createAgent(db, "sharer");
+    await grantLane(db, agent.id, lane.id);
     const now = new Date("2026-01-01T00:00:00Z");
-    const { token, expiresAt } = await createShare(db, "att", "agent-1", 10, now);
+    const { token, expiresAt } = await createShare(db, "att", agent.id, 10, now);
     expect(expiresAt).toBe("2026-01-01T00:10:00.000Z");
     expect(JSON.stringify(await db.all("SELECT * FROM shares"))).not.toContain(token);
     expect(await resolveShare(db, token, new Date("2026-01-01T00:09:59Z"))).toMatchObject({ r2_key: "k" });

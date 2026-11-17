@@ -62,7 +62,7 @@ describe("accepted mail", () => {
       envelope_from: "sender@example.com",
       header_from: "sender@example.com",
       subject: "Fwd: Your order has shipped",
-      auth_summary: "dkim=pass header.d=example.com",
+      auth_summary: "dkim=pass header.d=example.com spf=pass",
       is_test: 0,
       processed_at: null,
     });
@@ -80,7 +80,11 @@ describe("accepted mail", () => {
     const bad = await deliver({}, { to: laneAddress(other) });
     expect(bad.rejected).toBeNull();
     expect((await rejections())[0]?.reason).toBe("sender_not_allowed");
-    await deliver({ from: "someone@example.org" }, { to: laneAddress(other), from: "someone@example.org" });
+    // The signature and SPF must be for the sender's own domain, which is then on the deployment's list.
+    await deliver(
+      { from: "someone@example.org", auth: [AUTH_PASS("example.org", "someone@example.org")] },
+      { to: laneAddress(other), from: "someone@example.org", env: { ALLOWED_DKIM_DOMAINS: "example.com,example.org" } },
+    );
     expect(await messages()).toHaveLength(1);
   });
 

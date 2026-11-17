@@ -206,6 +206,46 @@ describe("share links", () => {
     expect((await fetchShare(data.url)).status).toBe(404);
   });
 
+  describe("a link stops working as soon as what allowed it no longer holds", () => {
+    const linkFor = async () => (await callTool(shareToken, "create_share_link", { attachment_id: "a-invoice" })).data.url as string;
+
+    it("when the agent that made it is revoked", async () => {
+      const url = await linkFor();
+      expect((await fetchShare(url)).status).toBe(200);
+      const { revokeAgent } = await import("../src/core/agents");
+      const agent = await db.first<{ id: string }>("SELECT id FROM agents WHERE name = 'sharer'");
+      await revokeAgent(db, agent!.id);
+      expect((await fetchShare(url)).status).toBe(404);
+    });
+
+    it("when the agent's access to the lane is removed", async () => {
+      const url = await linkFor();
+      const { ungrantLane } = await import("../src/core/agents");
+      const agent = await db.first<{ id: string }>("SELECT id FROM agents WHERE name = 'sharer'");
+      await ungrantLane(db, agent!.id, invoices.id);
+      expect((await fetchShare(url)).status).toBe(404);
+    });
+
+    it("when the lane stops being shareable, and works again if it is switched back", async () => {
+      const url = await linkFor();
+      await db.run("UPDATE lanes SET shareable = 0 WHERE id = ?", [invoices.id]);
+      expect((await fetchShare(url)).status).toBe(404);
+      await db.run("UPDATE lanes SET shareable = 1 WHERE id = ?", [invoices.id]);
+      expect((await fetchShare(url)).status).toBe(200);
+    });
+
+    it("other agents' links are unaffected", async () => {
+      const other = await agentWith(db, "other-sharer", [invoices]);
+      const mine = await linkFor();
+      const theirs = (await callTool(other.token, "create_share_link", { attachment_id: "a-invoice" })).data.url as string;
+      const { revokeAgent } = await import("../src/core/agents");
+      const agent = await db.first<{ id: string }>("SELECT id FROM agents WHERE name = 'sharer'");
+      await revokeAgent(db, agent!.id);
+      expect((await fetchShare(mine)).status).toBe(404);
+      expect((await fetchShare(theirs)).status).toBe(200);
+    });
+  });
+
   it("a share link is not served on the MCP host", async () => {
     const { data } = await callTool(shareToken, "create_share_link", { attachment_id: "a-invoice" });
     const onMcpHost = data.url.replace("files.example.com", "mcp.example.com");
