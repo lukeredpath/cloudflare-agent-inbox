@@ -74,5 +74,6 @@ describe("wrangler.example.jsonc", () => {
     const out = renderConfig(exampleTemplate, vars, { relocateMainBy: "../" });
     expect(out).not.toMatch(/<[A-Z][A-Z0-9_]*>/);
     expect(out).toContain('"main": "../src/worker/index.ts"');
+    expect(out).toContain('"migrations_dir": "../migrations"');
   });
 });

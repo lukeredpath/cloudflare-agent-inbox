@@ -2,10 +2,11 @@ const PLACEHOLDER = /<([A-Z][A-Z0-9_]*)>/g;
 const ENV_PREFIX = "AGENT_INBOX_";
 // Hostnames, worker names and comma-separated address lists only. Anything
 // else could break out of a JSON string.
+const RELATIVE_PATH_KEYS = ["main", "migrations_dir"];
 const SAFE_VALUE = /^[A-Za-z0-9._,@+:/-]+$/;
 
 export interface RenderOptions {
-  /** Directory the rendered file will live in, relative to the template's. Rewrites `main`. */
+  /** Prefix that turns the template's relative paths into ones valid from the rendered file's directory. */
   relocateMainBy?: string;
 }
 
@@ -39,10 +40,13 @@ export function renderConfig(
   PLACEHOLDER.lastIndex = 0;
 
   if (options.relocateMainBy) {
-    rendered = rendered.replace(
-      /("main"\s*:\s*")([^"]+)(")/,
-      (_, open: string, path: string, close: string) => `${open}${options.relocateMainBy}${path}${close}`,
-    );
+    // Paths in a Wrangler config resolve relative to the config file itself.
+    for (const key of RELATIVE_PATH_KEYS) {
+      rendered = rendered.replace(
+        new RegExp(`("${key}"\\s*:\\s*")([^"]+)(")`, "g"),
+        (_, open: string, path: string, close: string) => `${open}${options.relocateMainBy}${path}${close}`,
+      );
+    }
   }
   return rendered;
 }
