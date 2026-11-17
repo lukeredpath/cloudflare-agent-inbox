@@ -1,0 +1,18 @@
+Received: from mail.example.org by mx.example.net
+Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.com header.s=sig1 header.b=abc
+From: Sender <sender@example.com>
+To: inbox@mail.example.com
+Subject: HTML receipt
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><head><title>Hidden title</title><style>.x{color:red}</style></head>
+<body>
+<p>Total: 12.50 GBP</p>
+<div style="display:none">SECRET-DISPLAY-NONE</div>
+<span style="visibility:hidden">SECRET-VISIBILITY</span>
+<p style="font-size:0">SECRET-FONT-SIZE</p>
+<div style="width:0; height:0; overflow:hidden">SECRET-ZERO-DIMENSIONS</div>
+<script>alert("SECRET-SCRIPT")</script>
+<p>Visible footer</p>
+</body></html>

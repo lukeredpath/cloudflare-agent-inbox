@@ -1,10 +1,9 @@
-import type { Env } from "./env";
+import { handleEmail } from "./email.ts";
+import type { Env } from "./env.ts";
 
-// Milestone 1 stub: the handlers exist so the Worker deploys and the test
-// harness has something to run. Real behaviour arrives in later milestones.
 export default {
-  async email(_message, _env, _ctx): Promise<void> {
-    // Dropped silently, as every non-paused rejection will be.
+  async email(message, env, _ctx): Promise<void> {
+    await handleEmail(message, env);
   },
 
   async fetch(_request, _env, _ctx): Promise<Response> {

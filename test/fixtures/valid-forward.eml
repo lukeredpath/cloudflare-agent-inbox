@@ -1,0 +1,15 @@
+Received: from mail.example.org by mx.example.net
+Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.com header.s=sig1 header.b=abc;
+	dmarc=pass header.from=example.com policy.dmarc=none; spf=pass smtp.mailfrom=sender@example.com
+From: Sender <sender@example.com>
+To: inbox@mail.example.com
+Subject: Fwd: Your order has shipped
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Begin forwarded message:
+
+From: Shop <orders@shop.example.net>
+Subject: Your order has shipped
+
+Order 1234 for Widget, 9.99 GBP. Track it at https://tracking.example.net/t/abc?utm=xyz
