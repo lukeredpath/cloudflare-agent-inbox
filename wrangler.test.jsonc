@@ -6,6 +6,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "MAIL_HOSTNAME": "mail.example.com",
+    "MCP_HOSTNAME": "mcp.example.com",
+    "SHARE_HOSTNAME": "files.example.com",
     "DEFAULT_ALLOWED_SENDERS": "sender@example.com",
     "ALLOWED_DKIM_DOMAINS": "example.com"
   },
