@@ -197,11 +197,11 @@
 <div class="wrap">
   <header class="hero">
     <div>
-      <h1>Give agents the mail they need, and nothing else.</h1>
+      <h1>A small inbox that AI agents can read.</h1>
       <p class="lede">
-        A Cloudflare Worker that files the emails you forward into <b>lanes</b>.
-        Agents read only the lanes you grant them, through a narrow, mostly
-        read-only MCP server.
+        A Cloudflare Worker that files forwarded emails into <b>lanes</b>. An agent
+        can read only the lanes it has been granted, through a small MCP server, so
+        it can see your receipts and invoices without getting at the rest of your mail.
       </p>
       <div class="buttons">
         <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Setup guide</a>
@@ -209,6 +209,7 @@
         <a class="btn" href="https://github.com/__REPO__">GitHub</a>
       </div>
       <p class="small">Unofficial. Not affiliated with, endorsed by, or sponsored by Cloudflare.</p>
+      <p class="small" style="margin-top:.5rem"><b style="font-weight:600;color:var(--text)">Experimental.</b> It was built for personal use and is only lightly tested. Read the <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a> before pointing an agent at real mail.</p>
     </div>
 
     <div class="diagram" role="img" aria-label="Example: receipts and invoices go to lanes granted to a finance agent, alerts go to a lane granted to an ops agent, and mail sent to an unknown address is dropped.">
@@ -225,18 +226,19 @@
   <div class="wrap">
     <div class="label">What it does</div>
     <div>
-      <h2>Forward it, and it is filed.</h2>
+      <h2>Forwarded mail goes into lanes.</h2>
       <p class="intro">
-        You forward chosen emails (receipts, invoices, notifications) from your own
-        mailbox to a lane's unguessable address. The Worker checks the mail really came
-        from you, turns it into clean plain text, stores the original, and makes it
-        available to the agents you granted that lane, and nobody else.
+        You forward the emails you choose (receipts, invoices, notifications) from your
+        own mailbox to a lane's address, which is a long random string nobody could
+        guess. The Worker checks the mail really came from you, turns it into plain
+        text, keeps the original, and lets the agents you've granted that lane read it.
+        Nobody else can.
       </p>
       <dl>
-        <div><dt>Lanes are the unit of policy</dt><dd>Each lane has its own address, allowed senders, attachment rules, size and retention limits. Lanes are data, not code.</dd></div>
-        <div><dt>Checked at the door</dt><dd>Sender and authentication checks run before anything is stored (DKIM and SPF, or the forwarder's own record for server-side forwards). Anything that fails is dropped without a reply and logged headers-only. The one exception is a verified forward to a paused lane, which bounces so you notice.</dd></div>
-        <div><dt>No AI in the pipeline</dt><dd>Conversion to text is deterministic. Common hidden-HTML tricks (removal is best effort), zero-width and bidi characters are stripped, and links become <code>text (domain)</code>.</dd></div>
-        <div><dt>A small agent surface</dt><dd>Four tools: <code>list_messages</code>, <code>get_message</code>, <code>create_share_link</code>, <code>mark_processed</code>. Third-party text comes back in <code>untrusted*</code> fields.</dd></div>
+        <div><dt>Lanes</dt><dd>A lane is one kind of email that needs its own handling, like receipts or supplier invoices. Each has its own address, allowed senders, attachment rules, size limits and retention. They live in the database, not in the code.</dd></div>
+        <div><dt>Who it accepts mail from</dt><dd>Before anything is stored, the Worker checks the sender and the authentication results (DKIM and SPF, or the forwarder's own record for server-side forwards). Anything that fails is dropped without a reply and logged with headers only. The one exception is a verified forward to a paused lane, which bounces so you notice.</dd></div>
+        <div><dt>Plain text, every time</dt><dd>Nothing in the pipeline uses AI, so the same email always gives the same text. HTML is converted, zero-width and bidi characters are removed, and links become <code>text (domain)</code>. It also tries to drop hidden text, but that's best effort and won't catch everything.</dd></div>
+        <div><dt>What an agent can do</dt><dd>It has four tools: <code>list_messages</code>, <code>get_message</code>, <code>create_share_link</code> and <code>mark_processed</code>. Anything written by a third party comes back in a field whose name starts with <code>untrusted</code>.</dd></div>
       </dl>
     </div>
   </div>
@@ -246,8 +248,8 @@
   <div class="wrap">
     <div class="label">Get started</div>
     <div>
-      <h2>Four commands to your first lane.</h2>
-      <p class="intro">Once the Worker is deployed and Email Routing points at it, the admin CLI takes over.</p>
+      <h2>Getting a first lane going.</h2>
+      <p class="intro">Once the Worker is deployed and Email Routing points at it, the admin CLI does the rest.</p>
 <pre><span class="c"># point the CLI at your account</span>
 <span class="p">$</span> export AGENT_INBOX_CLI_API_TOKEN=...
 <span class="p">$</span> export CLOUDFLARE_ACCOUNT_ID=...
@@ -260,12 +262,12 @@
 <span class="p">$</span> npm run cli -- agents grant my-agent receipts
 <span class="p">$</span> npm run cli -- messages inject-test receipts --text "Total 3.50 GBP"</pre>
       <ol class="steps">
-        <li><span><b>Deploy the Worker</b> from a plain clone with <code>npm run deploy</code>. No fork needed.</span></li>
+        <li><span><b>Deploy the Worker</b> from a plain clone with <code>npm run deploy</code>. You don't need a fork.</span></li>
         <li><span><b>Create a lane.</b> The CLI prints its address; point a mail rule in your mailbox at it.</span></li>
-        <li><span><b>Mint an agent token</b> and grant it the lanes it should see. It is shown once, in a terminal only.</span></li>
+        <li><span><b>Mint an agent token</b> and grant it the lanes it should see. It's shown once, in a terminal only.</span></li>
         <li><span><b>Connect your agent</b> to the MCP endpoint with that bearer token.</span></li>
       </ol>
-      <p>The full guide covers DNS, Email Routing and deploy tokens; allow an hour or two the first time. If you would rather an agent did the mechanical parts, there is a prompt for that. It has not yet been used end to end, so treat a first run as a trial.</p>
+      <p>The full guide covers DNS, Email Routing and deploy tokens. Allow an hour or two the first time. There's also a prompt you can give an agent to do the mechanical parts, but it hasn't been run end to end yet, so treat a first run as a trial.</p>
       <div class="buttons">
         <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Full setup guide</a>
         <a class="btn" href="https://github.com/__REPO__/blob/main/docs/agent-setup.md">Agent-guided setup</a>
@@ -278,22 +280,23 @@
   <div class="wrap">
     <div class="label">Architecture</div>
     <div>
-      <h2>One Worker, two stores, one CLI.</h2>
-      <p class="intro">There is no admin route on the Worker. Management goes through the Cloudflare API from your machine.</p>
+      <h2>How it's put together.</h2>
+      <p class="intro">The Worker has no admin route. You manage everything from your own machine with the CLI, which talks to the Cloudflare API.</p>
       <div class="arch">
         <div class="tier"><b>Email Routing</b><span>Your forward arrives at <code>inbox+&lt;token&gt;@mail.example.com</code>. The token is 160 random bits.</span></div>
-        <div class="tier hot"><b>Worker: email()</b><span>Token to lane, sender and authentication checks, paused lanes, size and attachment policy, clean text, then the lane's attachment transforms. Anything that fails is dropped silently, except a verified forward to a paused lane, which bounces.</span></div>
-        <div class="tier"><b>D1 and R2</b><span>Clean text and metadata in D1. The raw message and attachments in R2.</span></div>
-        <div class="tier hot"><b>Worker: fetch()</b><span>The MCP server on its own host with bearer tokens, scoped to granted lanes inside the SQL itself. Short-lived share links serve downloads.</span></div>
-        <div class="tier"><b>Worker: scheduled()</b><span>A cron purge for retention, expired share links and old rejection records.</span></div>
-        <div class="tier"><b>agent-inbox CLI</b><span>Runs on your machine. Manages lanes, agent tokens and secrets. Prints metadata only unless you ask for bodies.</span></div>
+        <div class="tier hot"><b>Worker: email()</b><span>Finds the lane from the token, then checks the sender and authentication, the lane's paused state, and its size and attachment policy. It converts the message to clean text and runs any transforms the lane has, such as unzipping. Anything that fails is dropped silently, except a verified forward to a paused lane, which bounces.</span></div>
+        <div class="tier"><b>D1 and R2</b><span>Clean text and metadata go in D1. The raw message and its attachments go in R2.</span></div>
+        <div class="tier hot"><b>Worker: fetch()</b><span>Serves the MCP server, with bearer tokens and every query limited to the lanes an agent has been granted. Short-lived share links serve file downloads from a second hostname.</span></div>
+        <div class="tier"><b>Worker: scheduled()</b><span>Runs every hour to purge messages past their retention, expired share links and old rejection records.</span></div>
+        <div class="tier"><b>agent-inbox CLI</b><span>Runs on your machine. Manages lanes, agent tokens and secrets, and prints metadata only unless you ask for message bodies.</span></div>
       </div>
       <p>
-        Email bodies are untrusted data written by third parties. The design keeps risk
-        down with tight ingress control, per-lane scoping and a minimal agent surface, not
-        by filtering content, so safety also depends on what the consuming agent is allowed
-        to do. Read the <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a>
-        before you connect one.
+        Every email body is treated as untrusted, because somebody else wrote it. The Worker
+        doesn't try to spot malicious content. It keeps the risk down by being strict about
+        who can send mail in and what an agent can read, so how safe this is also depends on
+        what the agent itself is allowed to do. Read the
+        <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a>
+        before connecting one.
       </p>
     </div>
   </div>
@@ -305,8 +308,8 @@
     <div>
       <h2>MIT licensed.</h2>
       <p class="intro">
-        Use, copy, modify and distribute it, including commercially, as long as the
-        copyright and licence notice stay with it. It is provided as is, without warranty.
+        You can use, copy, modify and distribute it, including commercially, as long as
+        the copyright and licence notice stay with it. It comes as is, without warranty.
       </p>
       <table>
         <tr><td>Licence</td><td><a href="https://github.com/__REPO__/blob/main/LICENSE">MIT</a></td></tr>
