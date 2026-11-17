@@ -27,6 +27,24 @@ export const AttachmentPolicy = z.strictObject({
 });
 export type AttachmentPolicy = z.infer<typeof AttachmentPolicy>;
 
+export const VERDICTS = ["dmarc", "dkim", "spf"] as const;
+export type Verdict = (typeof VERDICTS)[number];
+
+/**
+ * Mail forwarded by a trusted forwarder (see TRUSTED_ARC_FORWARDERS) is accepted
+ * only when the forwarder's ARC record shows the original sender authenticated.
+ * `require` is any-of; the default is the strictest sensible one, DMARC.
+ */
+export const ForwardedFromRule = z.strictObject({
+  from: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/),
+  require: z.array(z.enum(VERDICTS)).min(1).max(3).default(["dmarc"]),
+});
+export type ForwardedFromRule = z.infer<typeof ForwardedFromRule>;
+
 export const DEFAULT_MAX_BYTES = 10 * MIB;
 export const DEFAULT_MAX_TEXT_CHARS = 50_000;
 export const DEFAULT_RETENTION_DAYS = 90;
@@ -43,6 +61,7 @@ const fields = {
   description: z.string().max(500),
   allowed_senders: z.array(address).min(1).max(20).nullable(),
   attachment_policy: AttachmentPolicy,
+  forwarded_from: z.array(ForwardedFromRule).max(10),
   shareable: z.boolean(),
   max_bytes: z.number().int().min(1024).max(HARD_MAX_MESSAGE_BYTES),
   max_text_chars: z.number().int().min(100).max(500_000),
@@ -54,6 +73,7 @@ export const LaneInput = z.strictObject({
   description: fields.description.default(""),
   allowed_senders: fields.allowed_senders.default(null),
   attachment_policy: fields.attachment_policy.default(() => AttachmentPolicy.parse({})),
+  forwarded_from: fields.forwarded_from.default([]),
   shareable: fields.shareable.default(false),
   max_bytes: fields.max_bytes.default(DEFAULT_MAX_BYTES),
   max_text_chars: fields.max_text_chars.default(DEFAULT_MAX_TEXT_CHARS),

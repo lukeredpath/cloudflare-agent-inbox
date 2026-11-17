@@ -38,8 +38,13 @@ function toBytes(content: Attachment["content"]): Uint8Array {
 /** Embedded images (logos, tracking pixels) are dropped: they are never stored or policy-checked. */
 const isInlineImage = (a: Attachment) => a.disposition === "inline" && Boolean(a.contentId) && a.mimeType.toLowerCase().startsWith("image/");
 
+// Mailbox providers prepend this when they cannot scan an attachment, such as a
+// password-protected archive. It is noise to anything matching on subjects, and the
+// raw message is stored untouched.
+const SCAN_TAG = /^\s*\[Not Virus Scanned\]\s*/i;
+
 const cleanSubject = (subject: string | undefined) => {
-  const s = stripInvisible(subject ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
+  const s = stripInvisible(subject ?? "").replace(SCAN_TAG, "").replace(/\s+/g, " ").trim().slice(0, 300);
   return s || null;
 };
 

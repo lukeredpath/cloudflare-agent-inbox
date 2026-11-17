@@ -344,3 +344,48 @@ describe("errors", () => {
     expect(r.all).not.toContain("secret internals");
   });
 });
+
+describe("forwarded rules and diagnostics", () => {
+  it("creates a lane that accepts forwarded mail, and shows it", async () => {
+    const r = await cli([
+      "lanes", "create", "invoices", "--forwarded-from", "Billing@Billing.Example.org", "--forwarded-from", "other@example.org=dkim,spf",
+    ]);
+    expect(r.code).toBe(0);
+    const lane = (await getLaneBySlug(db, "invoices"))!;
+    expect(lane.forwardedFrom).toEqual([
+      { from: "billing@billing.example.org", require: ["dmarc"] },
+      { from: "other@example.org", require: ["dkim", "spf"] },
+    ]);
+    expect(r.out).toContain("billing@billing.example.org (dmarc), other@example.org (dkim or spf)");
+    expect((await cli(["--json", "lanes", "get", "invoices"])).out).toContain('"forwarded_from"');
+  });
+
+  it("updates and clears the rules, and rejects bad ones", async () => {
+    await createLane(db, { slug: "a" });
+    expect((await cli(["lanes", "get", "a"])).out).toContain("none (direct DKIM only)");
+    await cli(["lanes", "update", "a", "--forwarded-from", "x@example.org=spf"]);
+    expect((await getLaneBySlug(db, "a"))!.forwardedFrom).toEqual([{ from: "x@example.org", require: ["spf"] }]);
+    await cli(["lanes", "update", "a", "--description", "changed"]);
+    expect((await getLaneBySlug(db, "a"))!.forwardedFrom).toHaveLength(1);
+    await cli(["lanes", "update", "a", "--clear-forwarded-from"]);
+    expect((await getLaneBySlug(db, "a"))!.forwardedFrom).toEqual([]);
+    expect((await cli(["lanes", "update", "a", "--forwarded-from", "x@example.org=bogus"])).code).toBe(1);
+    expect((await cli(["lanes", "update", "a", "--forwarded-from", "not-an-address"])).code).toBe(1);
+  });
+
+  it("prints rejection diagnostics only when asked, and always in JSON", async () => {
+    const lane = await createLane(db, { slug: "a" });
+    await logRejection(db, {
+      bucket: "lane", recipientHint: "x", envelopeFrom: "s@example.com", headerFrom: null, reason: "auth_failed", laneId: lane.id,
+      detail: "forwarded: nope", diagnostics: "first Authentication-Results: mx.cloudflare.net; arc=fail\nARC seals: i=1 d=x cv=none\u001b[31m",
+    }, 50);
+    const plain = await cli(["rejections", "list"]);
+    expect(plain.out).toContain("Pass --diagnostics");
+    expect(plain.out).not.toContain("ARC seals");
+    const verbose = await cli(["rejections", "list", "--diagnostics"]);
+    expect(verbose.out).toContain("  first Authentication-Results: mx.cloudflare.net; arc=fail");
+    expect(verbose.out).toContain("  ARC seals: i=1 d=x cv=none");
+    expect(verbose.all).not.toContain("\u001b");
+    expect(JSON.parse((await cli(["--json", "rejections", "list"])).out)[0].diagnostics).toContain("ARC seals");
+  });
+});

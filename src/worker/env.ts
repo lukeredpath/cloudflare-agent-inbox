@@ -11,6 +11,8 @@ export interface Env {
   DEFAULT_ALLOWED_SENDERS: string;
   /** Comma-separated domains whose DKIM pass is required. */
   ALLOWED_DKIM_DOMAINS: string;
+  /** Comma-separated forwarders (e.g. a mailbox provider) whose ARC record of the original sender is trusted. */
+  TRUSTED_ARC_FORWARDERS?: string;
   /** Per-bucket cap on logged rejections per rolling day (default 50). */
   MAX_REJECTED_PER_DAY?: string;
   /** Secrets that lane transforms may reference by name. */

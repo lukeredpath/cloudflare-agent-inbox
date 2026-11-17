@@ -29,7 +29,8 @@ Mark them as secrets so they are masked in build logs.
 | `AGENT_INBOX_MCP_HOSTNAME` | Custom domain serving the agent MCP |
 | `AGENT_INBOX_SHARE_HOSTNAME` | Custom domain serving share links |
 | `AGENT_INBOX_DEFAULT_ALLOWED_SENDERS` | Comma-separated envelope senders allowed by default |
-| `AGENT_INBOX_ALLOWED_DKIM_DOMAINS` | Comma-separated domains whose DKIM pass is required |
+| `AGENT_INBOX_ALLOWED_DKIM_DOMAINS` | Comma-separated domains whose DKIM pass is accepted (direct mail you send or forward by hand) |
+| `AGENT_INBOX_TRUSTED_ARC_FORWARDERS` | Comma-separated forwarders (for example your mailbox provider's domain) whose ARC record of the original sender is trusted. Lanes opt in with `--forwarded-from`; see [security.md](security.md) |
 
 Values may contain letters, digits and `. , @ + : / -` only. The MCP and share
 hostnames must differ from each other.
@@ -63,7 +64,7 @@ subaddressing: `inbox+<token>@<mail hostname>`.
 | Name | Kind | Meaning |
 | --- | --- | --- |
 | `MAIL_HOSTNAME`, `MCP_HOSTNAME`, `SHARE_HOSTNAME` | variable | rendered from the build variables above |
-| `DEFAULT_ALLOWED_SENDERS`, `ALLOWED_DKIM_DOMAINS` | variable | rendered from the build variables above |
+| `DEFAULT_ALLOWED_SENDERS`, `ALLOWED_DKIM_DOMAINS`, `TRUSTED_ARC_FORWARDERS` | variable | rendered from the build variables above |
 | `MAX_REJECTED_PER_DAY` | variable, optional | per-bucket cap on logged rejections (default 50) |
 | `LANE_SECRET_*` | secret | passwords for lane transforms, set with `secrets set` |
 

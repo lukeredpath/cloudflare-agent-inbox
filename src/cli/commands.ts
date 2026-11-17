@@ -88,6 +88,18 @@ export interface LaneFlags {
   unzipSecret?: string;
   innerType?: string[];
   noUnzip?: boolean;
+  /** `address` or `address=dmarc,dkim,spf`. */
+  forwardedFrom?: string[];
+  clearForwardedFrom?: boolean;
+}
+
+/** `billing@example.org=dmarc,spf` -> { from, require }. The verdicts are validated with the lane schema. */
+function parseForwardedRules(specs: string[]): { from: string; require?: string[] }[] {
+  return specs.map((spec) => {
+    const eq = spec.indexOf("=");
+    if (eq === -1) return { from: spec };
+    return { from: spec.slice(0, eq), require: spec.slice(eq + 1).split(",").map((v) => v.trim()) };
+  });
 }
 
 function policyFrom(base: AttachmentPolicy, f: LaneFlags): AttachmentPolicy | undefined {
@@ -128,6 +140,7 @@ function laneView(ctx: CliContext, lane: Lane) {
     max_text_chars: lane.maxTextChars,
     retention_days: lane.retentionDays,
     attachment_policy: lane.attachmentPolicy,
+    forwarded_from: lane.forwardedFrom,
     created_at: lane.createdAt,
     updated_at: lane.updatedAt,
   };
@@ -141,6 +154,7 @@ function laneLines(ctx: CliContext, lane: Lane): string[] {
     `Address:        ${addressOf(ctx, lane)}`,
     `Description:    ${printable(lane.description) || "-"}`,
     `Allowed senders: ${lane.allowedSenders ? lane.allowedSenders.map(printable).join(", ") : "(deployment default)"}`,
+    `Forwarded from: ${lane.forwardedFrom.length ? lane.forwardedFrom.map((r) => `${printable(r.from)} (${r.require.join(" or ")})`).join(", ") : "none (direct DKIM only)"}`,
     `Shareable:      ${yesNo(lane.shareable)}`,
     `Attachments:    ${p.allowed_types.length ? p.allowed_types.join(", ") : "none allowed"} (max ${bytes(p.max_attachment_bytes)} each)`,
     `Transforms:     ${unzip ? `unzip with secret ${unzip.password_secret}, inner types ${unzip.allow_inner_types.join(", ")}` : "none"}`,
@@ -158,6 +172,7 @@ export async function lanesCreate(ctx: CliContext, slug: string, f: LaneFlags): 
       allowed_senders: f.allowedSender,
       shareable: f.shareable,
       attachment_policy: policy,
+      forwarded_from: f.forwardedFrom ? parseForwardedRules(f.forwardedFrom) : undefined,
       max_bytes: f.maxBytes,
       max_text_chars: f.maxTextChars,
       retention_days: f.retentionDays,
@@ -204,6 +219,7 @@ export async function lanesUpdate(ctx: CliContext, slug: string, f: LaneFlags): 
     allowed_senders: f.clearAllowedSenders ? null : f.allowedSender,
     shareable: f.shareable,
     attachment_policy: policyFrom(lane.attachmentPolicy, f),
+    forwarded_from: f.clearForwardedFrom ? [] : f.forwardedFrom ? parseForwardedRules(f.forwardedFrom) : undefined,
     max_bytes: f.maxBytes,
     max_text_chars: f.maxTextChars,
     retention_days: f.retentionDays,
@@ -431,7 +447,7 @@ export async function messagesInjectTest(
 
 // ---- rejections
 
-export async function rejectionsList(ctx: CliContext, f: { lane?: string; limit?: number }): Promise<Result> {
+export async function rejectionsList(ctx: CliContext, f: { lane?: string; limit?: number; diagnostics?: boolean }): Promise<Result> {
   const lane = f.lane ? await requireLane(ctx, f.lane) : undefined;
   const rows = await listRejections(ctx.db, { laneId: lane?.id, limit: f.limit });
   const data = rows.map((r) => ({
@@ -443,6 +459,7 @@ export async function rejectionsList(ctx: CliContext, f: { lane?: string; limit?
     recipient_hint: r.recipient_hint,
     envelope_from: r.envelope_from,
     header_from: r.header_from,
+    diagnostics: r.diagnostics,
   }));
   const lines = rows.length
     ? table(
@@ -450,6 +467,13 @@ export async function rejectionsList(ctx: CliContext, f: { lane?: string; limit?
         rows.map((r) => [r.received_at, r.reason, r.lane_slug ?? "-", r.recipient_hint, r.envelope_from, r.header_from ?? "-", r.detail ?? ""]),
       )
     : ["No rejections logged."];
+  if (f.diagnostics) {
+    for (const r of rows.filter((x) => x.diagnostics)) {
+      lines.push("", `Diagnostics for ${r.received_at} (${r.reason}):`, ...r.diagnostics!.split("\n").map((l) => `  ${printable(l)}`));
+    }
+  } else if (rows.some((r) => r.diagnostics)) {
+    lines.push("", "Some rows have authentication-header diagnostics. Pass --diagnostics to print them.");
+  }
   return { data, lines };
 }
 

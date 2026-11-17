@@ -37,6 +37,10 @@ agent-inbox CLI (your machine) ─► Cloudflare API: D1 and Workers secrets
 
 - **Lanes are the unit of policy.** Each has its own address, allowed senders,
   attachment rules, transforms, size and retention limits.
+- **Sender checks** accept mail you compose or forward by hand (DKIM for your
+  domain) and, per lane, mail your provider forwards by a server-side rule
+  (the provider's ARC record of the original sender). See
+  [docs/security.md](docs/security.md).
 - **Addresses** look like `inbox+<token>@<mail hostname>`. The token is 160
   random bits. Email Routing needs a single literal rule for
   `inbox@<mail hostname>`, with subaddressing enabled.
@@ -46,6 +50,8 @@ agent-inbox CLI (your machine) ─► Cloudflare API: D1 and Workers secrets
 - **Agents** get a bearer token and four tools: `list_messages`, `get_message`,
   `create_share_link` and `mark_processed`. Body text and other third-party
   fields come back under names starting `untrusted`.
+
+**New here?** Follow [docs/getting-started.md](docs/getting-started.md).
 
 See [docs/security.md](docs/security.md) for the threat model,
 [docs/lanes.md](docs/lanes.md) for lane recipes and

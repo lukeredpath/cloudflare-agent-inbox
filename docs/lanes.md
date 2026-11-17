@@ -34,6 +34,26 @@ transform is stored, not unzipped. If extraction fails (wrong password, too many
 files, a nested archive, an unexpected inner type) the message is still stored
 and the zip is flagged. Check with `lanes get statements`.
 
+## A lane for mail forwarded by a server-side rule
+
+Mail you compose or forward by hand carries your mail provider's DKIM signature
+for your domain, so it passes the direct check. A **server-side forwarding rule**
+adds no signature, so the lane has to trust the provider's record of the
+original sender instead:
+
+```sh
+npm run cli -- lanes create statements \
+  --forwarded-from billing@billing.example.org          # requires dmarc (default)
+```
+
+- The deployment must list the provider in `AGENT_INBOX_TRUSTED_ARC_FORWARDERS`.
+- `--forwarded-from address=dkim,spf` accepts the first of several verdicts, and
+  is repeatable for several original senders. Prefer the strictest verdict the
+  sender actually passes: look at the provider's recorded results before loosening.
+- Check what a failed forward looked like with
+  `npm run cli -- rejections list --diagnostics`.
+- `lanes update <slug> --clear-forwarded-from` turns it off.
+
 ## Changing a lane
 
 ```sh

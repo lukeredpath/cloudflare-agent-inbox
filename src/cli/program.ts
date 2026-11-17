@@ -15,6 +15,11 @@ function laneOptions(cmd: Command, forCreate: boolean): Command {
   cmd
     .option("--description <text>", "what the lane is for")
     .option("--allowed-sender <address>", "envelope sender allowed on this lane (repeatable; default: the deployment's list)", collect)
+    .option(
+      "--forwarded-from <rule>",
+      "accept mail forwarded by a trusted forwarder from this original sender: address or address=dmarc,dkim,spf (repeatable; default dmarc)",
+      collect,
+    )
     .option("--shareable", "let agents create share links for this lane's files")
     .option("--allow-type <mime>", "attachment type the lane accepts (repeatable)", collect)
     .option("--max-attachment-bytes <n>", "largest accepted attachment", int)
@@ -27,6 +32,7 @@ function laneOptions(cmd: Command, forCreate: boolean): Command {
     cmd
       .option("--no-shareable", "turn share links off")
       .option("--clear-allowed-senders", "go back to the deployment's default senders")
+      .option("--clear-forwarded-from", "stop accepting forwarded mail on this lane")
       .option("--no-unzip", "remove the unzip transform");
   }
   return cmd;
@@ -104,7 +110,8 @@ export function buildProgram(ctx: CliContext, emit: (result: c.Result, json: boo
   // rejections
   program.command("rejections").description("see what was rejected and why").command("list")
     .option("--lane <slug>").option("--limit <n>", "at most this many (max 200)", int)
-    .action(run((o: { lane?: string; limit?: number }) => c.rejectionsList(ctx, o)));
+    .option("--diagnostics", "also print the authentication-header excerpt kept for failed forwards")
+    .action(run((o: { lane?: string; limit?: number; diagnostics?: boolean }) => c.rejectionsList(ctx, o)));
 
   return program;
 }

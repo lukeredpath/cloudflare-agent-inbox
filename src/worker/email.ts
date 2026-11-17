@@ -62,8 +62,8 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
       await logRejection(db, { ...base, bucket: "probe", reason: "unknown_address" }, cap);
       return;
     }
-    const reject = (reason: RejectionReason, detail?: string) =>
-      logRejection(db, { ...base, bucket: "lane", reason, detail, laneId: lane.id }, cap);
+    const reject = (reason: RejectionReason, detail?: string, diagnostics?: string) =>
+      logRejection(db, { ...base, bucket: "lane", reason, detail, diagnostics, laneId: lane.id }, cap);
 
     // Cheap size check first, before reading the body.
     const limit = Math.min(lane.maxBytes, HARD_MAX_MESSAGE_BYTES);
@@ -74,8 +74,10 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
     const verdict = checkSender(raw, envelopeFrom, {
       allowedSenders: lane.allowedSenders ?? parseList(env.DEFAULT_ALLOWED_SENDERS),
       allowedDkimDomains: parseList(env.ALLOWED_DKIM_DOMAINS),
+      trustedArcForwarders: parseList(env.TRUSTED_ARC_FORWARDERS),
+      forwardedFrom: lane.forwardedFrom,
     });
-    if (!verdict.allowed) return void (await reject(verdict.reason, verdict.detail));
+    if (!verdict.allowed) return void (await reject(verdict.reason, verdict.detail, verdict.diagnostics));
     authenticated = true;
 
     // Only a verified forward from an allowed sender can bounce, so the paused
