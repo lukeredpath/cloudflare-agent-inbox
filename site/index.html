@@ -89,6 +89,10 @@
   nav .links a { white-space: nowrap; }
 
   /* hero */
+  /* An unmissable notice at the very top of the page: lemon fill with fixed dark text, so it reads in both themes. */
+  .notice { margin: 1.5rem 0 0; padding: .85rem 1.1rem; background: var(--lemon); color: #2a1f14; border-radius: 8px; font: 500 .95rem/1.5 var(--sans); }
+  .notice b { font-weight: 800; letter-spacing: .01em; }
+  .notice a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .hero { padding: 3.5rem 0 4rem; display: grid; grid-template-columns: 1.15fr 1fr; gap: 3.5rem; align-items: center; }
   h1 { font: 800 clamp(1.75rem, 1.3rem + 1.7vw, 2.5rem)/1.1 var(--display); letter-spacing: -.02em; margin: 0 0 1.25rem; }
   .lede { font-size: 1.2rem; color: var(--secondary); margin-bottom: 1.75rem; }
@@ -195,6 +199,7 @@
 </nav>
 
 <div class="wrap">
+  <p class="notice" role="note"><b>Experimental.</b> This is early software, built for its author's own use and only lightly tested. Expect rough edges and breaking changes, and read the <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a> before connecting an agent to real mail.</p>
   <header class="hero">
     <div>
       <h1>Give agents the mail they need, and nothing else.</h1>
@@ -234,8 +239,8 @@
       </p>
       <dl>
         <div><dt>Lanes are the unit of policy</dt><dd>Each lane has its own address, allowed senders, attachment rules, size and retention limits. Lanes are data, not code.</dd></div>
-        <div><dt>Checked at the door</dt><dd>Sender and DKIM checks run before anything is stored. Anything that fails is dropped without a reply and logged headers-only. The one exception is a verified forward to a paused lane, which bounces so you notice.</dd></div>
-        <div><dt>No AI in the pipeline</dt><dd>Conversion to text is deterministic. Hidden HTML, zero-width and bidi characters are stripped, and links become <code>text (domain)</code>.</dd></div>
+        <div><dt>Checked at the door</dt><dd>Sender and authentication checks run before anything is stored (DKIM and SPF, or the forwarder's own record for server-side forwards). Anything that fails is dropped without a reply and logged headers-only. The one exception is a verified forward to a paused lane, which bounces so you notice.</dd></div>
+        <div><dt>No AI in the pipeline</dt><dd>Conversion to text is deterministic. Common hidden-HTML tricks (removal is best effort), zero-width and bidi characters are stripped, and links become <code>text (domain)</code>.</dd></div>
         <div><dt>A small agent surface</dt><dd>Four tools: <code>list_messages</code>, <code>get_message</code>, <code>create_share_link</code>, <code>mark_processed</code>. Third-party text comes back in <code>untrusted*</code> fields.</dd></div>
       </dl>
     </div>
@@ -282,7 +287,7 @@
       <p class="intro">There is no admin route on the Worker. Management goes through the Cloudflare API from your machine.</p>
       <div class="arch">
         <div class="tier"><b>Email Routing</b><span>Your forward arrives at <code>inbox+&lt;token&gt;@mail.example.com</code>. The token is 160 random bits.</span></div>
-        <div class="tier hot"><b>Worker: email()</b><span>Token to lane, sender and DKIM checks, paused lanes, size and attachment policy, clean text, then the lane's attachment transforms. Anything that fails is dropped silently, except a verified forward to a paused lane, which bounces.</span></div>
+        <div class="tier hot"><b>Worker: email()</b><span>Token to lane, sender and authentication checks, paused lanes, size and attachment policy, clean text, then the lane's attachment transforms. Anything that fails is dropped silently, except a verified forward to a paused lane, which bounces.</span></div>
         <div class="tier"><b>D1 and R2</b><span>Clean text and metadata in D1. The raw message and attachments in R2.</span></div>
         <div class="tier hot"><b>Worker: fetch()</b><span>The MCP server on its own host with bearer tokens, scoped to granted lanes inside the SQL itself. Short-lived share links serve downloads.</span></div>
         <div class="tier"><b>Worker: scheduled()</b><span>A cron purge for retention, expired share links and old rejection records.</span></div>
