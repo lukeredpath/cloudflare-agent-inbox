@@ -1,6 +1,6 @@
 {
   "name": "cloudflare-agent-inbox",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Experimental: lane-based email inbox on Cloudflare Workers for AI agents. Unofficial; not affiliated with Cloudflare.",
