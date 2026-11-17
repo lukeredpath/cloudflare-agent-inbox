@@ -1,0 +1,22 @@
+title = "agent-inbox"
+
+[extend]
+useDefault = true
+
+# Cloudflare account and zone ids are 32 hex characters; resource ids are UUIDs.
+# Neither belongs in the repo, whatever the key is called.
+[[rules]]
+id = "cloudflare-account-or-zone-id"
+description = "Cloudflare account or zone id"
+regex = '''(?i)(account|zone)[_-]?id["']?\s*[:=]\s*["']?[0-9a-f]{32}\b'''
+keywords = ["account", "zone"]
+
+[[rules]]
+id = "cloudflare-resource-id"
+description = "D1 or other resource UUID in config"
+regex = '''(?i)(database|namespace|resource)[_-]?id["']?\s*[:=]\s*["']?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b'''
+keywords = ["database", "namespace", "resource"]
+
+[allowlist]
+description = "Lockfiles hold integrity hashes, not secrets"
+paths = ['''package-lock\.json''']

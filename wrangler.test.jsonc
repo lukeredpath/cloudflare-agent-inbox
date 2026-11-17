@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agent-inbox-test",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "MAIL_HOSTNAME": "mail.example.com",
+    "DEFAULT_ALLOWED_SENDERS": "sender@example.com",
+    "ALLOWED_DKIM_DOMAINS": "example.com"
+  },
+  "d1_databases": [{ "binding": "DB", "database_name": "test-db", "database_id": "test-db" }],
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "test-bucket" }]
+}

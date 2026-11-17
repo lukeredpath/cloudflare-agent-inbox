@@ -1,0 +1,27 @@
+{
+  "name": "cloudflare-agent-inbox",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lane-based email inbox on Cloudflare Workers for AI agents. Unofficial; not affiliated with Cloudflare.",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "render-config": "node scripts/render-config-cli.ts",
+    "pii-scan": "node scripts/pii-scan-cli.ts",
+    "cli": "echo 'The CLI arrives in milestone M6.' && exit 1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.8.3",
+    "@cloudflare/workers-types": "^5.20261117.1",
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.163.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261116.1": true
+  }
+}

@@ -1,0 +1,34 @@
+// Template for the real deployment config. Each angle-bracket token below is
+// replaced at build time from the environment variable of the same name with
+// an AGENT_INBOX_ prefix (Workers Builds build variables) by
+// `npm run render-config`. The rendered file is never committed.
+// See docs/deploy.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "<WORKER_NAME>",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+
+  // The MCP host and the share-link host are separate custom domains.
+  "routes": [
+    { "pattern": "<MCP_HOSTNAME>", "custom_domain": true },
+    { "pattern": "<SHARE_HOSTNAME>", "custom_domain": true }
+  ],
+
+  "vars": {
+    "MAIL_HOSTNAME": "<MAIL_HOSTNAME>",
+    "DEFAULT_ALLOWED_SENDERS": "<DEFAULT_ALLOWED_SENDERS>",
+    "ALLOWED_DKIM_DOMAINS": "<ALLOWED_DKIM_DOMAINS>"
+  },
+
+  // No resource ids: Wrangler provisions D1 and R2 on first deploy.
+  "d1_databases": [{ "binding": "DB", "database_name": "<WORKER_NAME>" }],
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "<WORKER_NAME>" }],
+
+  // Daily retention purge.
+  "triggers": { "crons": ["17 3 * * *"] }
+}
