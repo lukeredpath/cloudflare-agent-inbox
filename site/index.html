@@ -89,10 +89,6 @@
   nav .links a { white-space: nowrap; }
 
   /* hero */
-  /* An unmissable notice at the very top of the page: lemon fill with fixed dark text, so it reads in both themes. */
-  .notice { margin: 1.5rem 0 0; padding: .85rem 1.1rem; background: var(--lemon); color: #2a1f14; border-radius: 8px; font: 500 .95rem/1.5 var(--sans); }
-  .notice b { font-weight: 800; letter-spacing: .01em; }
-  .notice a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .hero { padding: 3.5rem 0 4rem; display: grid; grid-template-columns: 1.15fr 1fr; gap: 3.5rem; align-items: center; }
   h1 { font: 800 clamp(1.75rem, 1.3rem + 1.7vw, 2.5rem)/1.1 var(--display); letter-spacing: -.02em; margin: 0 0 1.25rem; }
   .lede { font-size: 1.2rem; color: var(--secondary); margin-bottom: 1.75rem; }
@@ -199,7 +195,6 @@
 </nav>
 
 <div class="wrap">
-  <p class="notice" role="note"><b>Experimental.</b> This is early software, built for its author's own use and only lightly tested. Expect rough edges and breaking changes, and read the <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a> before connecting an agent to real mail.</p>
   <header class="hero">
     <div>
       <h1>Give agents the mail they need, and nothing else.</h1>
