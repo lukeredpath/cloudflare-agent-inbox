@@ -26,7 +26,7 @@
   },
 
   // No resource ids: Wrangler provisions D1 and R2 on first deploy.
-  "d1_databases": [{ "binding": "DB", "database_name": "<WORKER_NAME>" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "<WORKER_NAME>", "migrations_dir": "migrations" }],
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "<WORKER_NAME>" }],
 
   // Daily retention purge.
