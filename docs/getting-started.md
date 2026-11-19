@@ -293,7 +293,8 @@ npm run cli -- lanes update receipts --forwarded-from orders@shop.example.net
      original sender, or rewrite it to a different address for every message
      (SRS), will not match an allowlist.
 - This path is modelled on iCloud Mail's forwarding rules but has been tested with
-  synthetic messages only, not yet with a real rule's headers. Other providers should
+  synthetic messages only. Its real ARC headers have been inspected, but no message has
+  yet been accepted through a real rule. Other providers should
   work if they meet the three points; if one does not,
   `rejections list --diagnostics` shows what it sent.
 
@@ -344,7 +345,7 @@ is stored beyond headers.
 | --- | --- | --- |
 | `unknown_address` | the address does not match a lane (wrong host, wrong shape, or rotated) | re-copy the address from `lanes get`; check the Email Routing rule |
 | `sender_not_allowed` | the envelope sender is not on the lane's list | add it with `--allowed-sender`, or set `AGENT_INBOX_DEFAULT_ALLOWED_SENDERS`. Forwarding rules rewrite the envelope sender, so check what it became |
-| `auth_failed` | the sender passed, but authentication did not | run `rejections list --diagnostics`. The detail says which path failed: `direct:` (no DKIM pass for an allowed domain, typical for rule-based forwards) or `forwarded:` (for example no `arc=pass`, forwarder not trusted, no aligned verdict) |
+| `auth_failed` | the sender passed, but authentication did not | run `rejections list --diagnostics`. The detail says which path failed: `direct:` (no DKIM pass for an allowed domain, typical for rule-based forwards) or `forwarded:` (for example no `arc=pass`, forwarder not trusted, no aligned verdict, or a From header that is not a single address) |
 | `lane_paused` | you paused the lane; your own forward bounces so you notice | `lanes resume <slug>` |
 | `too_large` | over the lane's message limit | `lanes update --max-bytes` |
 | `attachment_not_allowed` | a type, size or count the lane does not accept (judged by the file's real type) | `--allow-type`, `--max-attachment-bytes` |

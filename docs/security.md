@@ -51,8 +51,9 @@
 
   No mail provider is named in the code. A forwarder works if it seals its own ARC
   set, records the original hop's verdicts in it, and sets the envelope sender to
-  an address you allow. This path has been tested with synthetic messages only; it has
-  not yet been confirmed against a real provider's headers.
+  an address you allow. This path has been tested with synthetic messages only. A
+  real provider's ARC headers have been inspected, but no message has yet been
+  accepted through it on a real deployment.
 
   The From header must hold exactly one address; a list of mailboxes, a trailing
   comment or an unparsable header is refused. When several rules could match, only
