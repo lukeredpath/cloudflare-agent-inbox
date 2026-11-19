@@ -13,10 +13,12 @@
   "preview_urls": false,
   "observability": { "enabled": true },
 
-  // The MCP host and the share-link host are separate custom domains.
+  // The MCP host and the share-link host are separate custom domains. The admin host is
+  // optional: leave the AGENT_INBOX_ADMIN_* variables unset and its lines are dropped.
   "routes": [
     { "pattern": "<MCP_HOSTNAME>", "custom_domain": true },
-    { "pattern": "<SHARE_HOSTNAME>", "custom_domain": true }
+    { "pattern": "<SHARE_HOSTNAME>", "custom_domain": true },
+    { "pattern": "<ADMIN_HOSTNAME?>", "custom_domain": true },
   ],
 
   "vars": {
@@ -25,7 +27,19 @@
     "SHARE_HOSTNAME": "<SHARE_HOSTNAME>",
     "DEFAULT_ALLOWED_SENDERS": "<DEFAULT_ALLOWED_SENDERS>",
     "ALLOWED_DKIM_DOMAINS": "<ALLOWED_DKIM_DOMAINS>",
-    "TRUSTED_ARC_FORWARDERS": "<TRUSTED_ARC_FORWARDERS>"
+    "TRUSTED_ARC_FORWARDERS": "<TRUSTED_ARC_FORWARDERS>",
+    "ADMIN_HOSTNAME": "<ADMIN_HOSTNAME?>",
+    "ACCESS_TEAM_DOMAIN": "<ACCESS_TEAM_DOMAIN?>",
+    "ACCESS_AUD": "<ACCESS_AUD?>",
+  },
+
+  // The admin app (built by `npm run build:admin`). The Worker runs first so every request
+  // on the admin host passes the Access check before any file is served.
+  "assets": {
+    "directory": "dist/admin",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
   },
 
   // No resource ids: Wrangler provisions D1 and R2 on first deploy.

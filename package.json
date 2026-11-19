@@ -7,18 +7,23 @@
   "license": "MIT",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/admin",
     "render-config": "node scripts/render-config-cli.ts",
     "pii-scan": "node scripts/pii-scan-cli.ts",
     "cli": "node src/cli/index.ts",
     "deploy": "node scripts/deploy-cli.ts",
-    "build": "npm test && npm run render-config"
+    "build:admin": "vite build",
+    "dev:admin": "vite",
+    "build": "npm test && npm run build:admin && npm run render-config"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.8.3",
     "@cloudflare/workers-types": "^5.20261117.1",
+    "@preact/preset-vite": "^2.10.6",
     "@types/node": "^22.20.5",
+    "preact": "^11.2.0",
     "typescript": "^7.0.2",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0",
     "wrangler": "^4.163.0"
   },

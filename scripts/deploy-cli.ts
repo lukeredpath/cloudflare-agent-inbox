@@ -16,6 +16,8 @@ const run = (cmd: string, args: string[]) => {
   if (result.status !== 0) process.exit(result.status ?? 1);
 };
 
+// The config points Wrangler at the built admin app, so it must exist before anything else runs.
+run("npm", ["run", "build:admin"]);
 run(process.execPath, ["scripts/render-config-cli.ts"]);
 
 const listed = spawnSync("npx", ["wrangler", "d1", "list", "--json"], { encoding: "utf8" });
