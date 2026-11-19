@@ -32,6 +32,25 @@ Run `npm test` and `npm run typecheck` before every commit. Node comes from
 Local CLI: `npm run cli -- --help` (needs `AGENT_INBOX_CLI_API_TOKEN` or `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
 `AGENT_INBOX_WORKER_NAME`, `AGENT_INBOX_MAIL_HOSTNAME`, only for commands that use them).
 
+## Releasing
+
+Releases are small and follow the same steps each time:
+
+1. **Review the documentation before anything else.** Read the README, everything under
+   `docs/` and the website (`site/index.html`) against what changed since the last
+   release. Fix anything stale, overstated or missing. Do this every release, even when
+   the change looks internal.
+2. Move the CHANGELOG's Unreleased entries under a new `## x.y.z (date)` heading.
+   Releases are 0.x: a minor bump for features or behaviour changes, a patch for fixes.
+3. Run `npm test` and `npm run typecheck`.
+4. Bump the version with `npx npm@11 version x.y.z --no-git-tag-version` (it updates
+   `package-lock.json` too) and commit it as `chore(release): x.y.z`.
+5. Push `main`, then tag `vx.y.z` and push the tag.
+6. Create the GitHub release from the tag with the CHANGELOG entry as its notes. Keep it
+   marked as a pre-release while the project is experimental.
+
+Pushing, tagging and publishing are outward-facing: do them only when asked.
+
 ## Layout
 
 - `src/core/`: shared by the Worker and the CLI. Pure TypeScript with no Node or Workers APIs
