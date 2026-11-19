@@ -19,9 +19,11 @@ changes. Each one is listed here.
 - Optional build variables: `AGENT_INBOX_ADMIN_HOSTNAME`, `AGENT_INBOX_ACCESS_TEAM_DOMAIN` and
   `AGENT_INBOX_ACCESS_AUD`, set together or not at all. Without them nothing is served on a new
   hostname.
-
 - `npm run dev` runs the admin interface locally with hot reload, a local D1 and R2 holding
   synthetic data, and a stand-in for Access that never ships (`docs/admin.md`).
+- The project page has a section on the admin interface, with screenshots that follow the page's
+  light and dark theme, and a terminal showing the CLI. `npm run screenshots` regenerates the
+  pictures from the synthetic seed data.
 
 ### Changed
 
@@ -29,6 +31,11 @@ changes. Each one is listed here.
   includes an `assets` section. The build refuses an admin hostname that repeats the MCP,
   share or mail hostname, and an MCP hostname that repeats the share one. The mail hostname
   may still be the same as the MCP or share hostname.
+
+### Fixed
+
+- The project page no longer scrolls sideways on a phone: a wide code block was stretching its
+  column.
 
 ## 0.2.0 (2026-11-19)
 

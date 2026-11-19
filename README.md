@@ -116,6 +116,11 @@ content is only ever shown as text, and message bodies appear only when asked fo
 unless configured; see [docs/admin.md](docs/admin.md). To try it without deploying anything,
 see [Running the admin interface locally](#running-the-admin-interface-locally).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="site/screenshots/overview-dark.webp">
+  <img alt="The admin overview: a Needs attention panel above a table of lanes with their message counts. The data is invented." src="site/screenshots/overview-light.webp">
+</picture>
+
 ## Configuration
 
 Deployment values (hostnames, allowed senders, DKIM domains) are never
@@ -142,6 +147,7 @@ npm test                # Vitest inside the Workers runtime
 npm run typecheck
 npm run build:admin     # build the admin app into dist/admin
 npm run dev             # the admin interface locally, with synthetic data
+npm run screenshots     # regenerate the pictures on the website (see docs/admin.md)
 git config core.hooksPath .githooks   # enable the pre-commit scans
 ```
 
