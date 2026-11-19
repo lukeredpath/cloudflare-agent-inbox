@@ -177,11 +177,12 @@
   section.wide .wrap { grid-template-columns: minmax(0, 1fr); gap: .25rem; }
   section.wide .label { padding-top: 0; }
   h3 { font: 800 1.25rem/1.2 var(--display); letter-spacing: -.01em; margin: 2.75rem 0 .6rem; }
-  .shot { margin: 0 0 2rem; }
+  /* A figure is one card, like the diagram and the architecture list: picture above, caption below it. */
+  .shot { margin: 0 0 2rem; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
   .shot a { display: block; text-decoration: none; }
   .shot a:hover { background: none; box-shadow: none; }
-  .shot img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
-  .shot a:focus-visible { border-radius: 8px; }
+  .shot a:focus-visible { outline-offset: -3px; }
+  .shot img { display: block; width: 100%; height: auto; border-bottom: 1px solid var(--rule); }
   .shot .dark { display: none; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .shot .light { display: none; }
@@ -189,10 +190,11 @@
   }
   :root[data-theme="dark"] .shot .light { display: none; }
   :root[data-theme="dark"] .shot .dark { display: block; }
-  figcaption { font-size: .9rem; color: var(--secondary); margin-top: .65rem; }
+  .shot figcaption { margin: 0; padding: .75rem 1.1rem; background: var(--code-bg); font-size: .9rem; color: var(--secondary); }
+  .shot figcaption b { color: var(--text); font-weight: 500; }
 
   /* A pseudo terminal: real, selectable text. It is dark in both themes, as terminals usually are. */
-  .terminal { margin: 0 0 2rem; border: 1px solid #2a3a50; border-radius: 8px; overflow: hidden; background: #101a2a; color: #d3dae3; }
+  .terminal { margin: 0 0 2rem; border: 1px solid #2a3a50; border-radius: 4px; overflow: hidden; background: #101a2a; color: #d3dae3; }
   .terminal .bar { display: flex; align-items: center; gap: .4rem; padding: .6rem .85rem; background: #1c2a3e; border-bottom: 1px solid #2a3a50; font: 500 .75rem var(--mono); color: #9eabbd; }
   .terminal .bar i { width: .65rem; height: .65rem; border-radius: 50%; background: #3a4a62; }
   .terminal .bar span { margin-left: .5rem; }
@@ -290,13 +292,13 @@
       <figure class="shot">
         <a class="light" href="screenshots/overview-light.webp"><img src="screenshots/overview-light.webp" width="1280" height="820" loading="lazy" alt="The admin overview in light mode. A Needs attention panel lists two transform failures, a paused lane and four recent rejections, above a table of five lanes with their message counts and when each last received mail."></a>
         <a class="dark" href="screenshots/overview-dark.webp"><img src="screenshots/overview-dark.webp" width="1280" height="820" loading="lazy" alt="The admin overview in dark mode. A Needs attention panel lists two transform failures, a paused lane and four recent rejections, above a table of five lanes with their message counts and when each last received mail."></a>
-        <figcaption>Every lane at a glance, and anything that needs attention. Lanes and agents are managed from here.</figcaption>
+        <figcaption><b>Overview.</b> Every lane at a glance, and anything that needs attention. Lanes and agents are managed from here.</figcaption>
       </figure>
 
       <figure class="shot">
         <a class="light" href="screenshots/message-light.webp"><img src="screenshots/message-light.webp" width="1280" height="900" loading="lazy" alt="A message in the admin interface, in light mode. The subject, the body, the original sender and the agent's note each sit inside a dashed amber block labelled as untrusted email content. The body text is an invented attempt to give an agent instructions."></a>
         <a class="dark" href="screenshots/message-dark.webp"><img src="screenshots/message-dark.webp" width="1280" height="900" loading="lazy" alt="A message in the admin interface, in dark mode. The subject, the body, the original sender and the agent's note each sit inside a dashed amber block labelled as untrusted email content. The body text is an invented attempt to give an agent instructions."></a>
-        <figcaption>Email text is shown as plain text in a marked block, and a body loads only on request. This one is an invented attempt to trick an agent.</figcaption>
+        <figcaption><b>A message.</b> Email text is only ever plain text in a marked block, and a body loads only on request.</figcaption>
       </figure>
 
       <p>
