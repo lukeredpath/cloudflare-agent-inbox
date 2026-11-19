@@ -276,6 +276,11 @@ npm run cli -- lanes update receipts --forwarded-from orders@shop.example.net
 - The default requirement is a DMARC pass for the original sender, aligned with
   its From domain. Loosen to `dkim` or `spf` per sender only after looking at what
   the provider records: `--forwarded-from orders@shop.example.net=dmarc,spf`.
+- For a lane that gets mail from many senders, `--forwarded-from '*'` (any sender)
+  or `--forwarded-from '*@shop.example.net'` (one domain) accept anyone whose DMARC
+  pass the provider recorded. Wildcards require `dmarc` and nothing looser. Quote
+  the `*`. The mail rule in your provider then decides what reaches the lane, so
+  keep it narrow.
 - The envelope sender must still be one of your allowed senders: forwarding rules
   rewrite it to the mailbox owner.
 - The code names no mail provider: the forwarder is whatever you list. It works

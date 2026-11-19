@@ -52,6 +52,16 @@ npm run cli -- lanes create statements \
   sender actually passes: look at the provider's recorded results before loosening.
 - Check what a failed forward looked like with
   `npm run cli -- rejections list --diagnostics`.
+- `--forwarded-from '*@shop.example.net'` accepts any address at exactly that
+  domain (not its subdomains), and `--forwarded-from '*'` accepts any From
+  address. **Quote the `*`**, or the shell expands it. A wildcard vouches for
+  senders you did not list, so it may require nothing but `dmarc`: anything
+  else is refused, as is a public suffix such as `*@co.uk`. With several rules,
+  the most specific one for the From address is used and only that one: an
+  exact address, then `*@domain`, then `*`. A pattern may appear once per lane.
+- The recorded DMARC verdict must be aligned with the actual From domain.
+  Senders that mail from a subdomain (for example `mail.shop.example.net`) need
+  their own `*@mail.shop.example.net` rule, or `*`.
 - `lanes update <slug> --clear-forwarded-from` turns it off.
 
 ## Changing a lane

@@ -3,6 +3,27 @@
 Releases are 0.x while the project is experimental: any release can contain breaking
 changes. Each one is listed here.
 
+## Unreleased
+
+### Added
+
+- `forwarded_from` accepts `*@domain` (exactly that domain, not subdomains) and `*`
+  (any From address). Wildcards must require exactly `dmarc`, may not be a public
+  suffix, and each pattern may appear once per lane. The most specific rule for the
+  From address is the only one tried: an exact address, then a domain, then `*`.
+
+### Fixed
+
+- Mail forwarded by a provider whose ARC set is the first in the chain (`i=1`,
+  `cv=none`, as RFC 8617 requires) was always rejected as "forwarder's ARC set did
+  not validate". The first set is now accepted when Cloudflare's own set validates.
+  Cloudflare's set must now itself be `cv=pass`.
+
+### Changed
+
+- The From header must contain exactly one address on the forwarded path. A list of
+  mailboxes, a trailing comment or a display name hiding another address is refused.
+
 ## 0.1.0 (2026-11-17)
 
 The first release.

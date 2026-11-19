@@ -35,12 +35,16 @@
      envelope sender.
   3. The topmost ARC set is Cloudflare's own, and the set beneath it (matched by
      its `i=` instance, never by header order) is sealed by a trusted forwarder,
-     with `cv=pass`. Instances must be contiguous and unduplicated.
+     with `cv=pass`, or with `cv=none` when it is the first set in the chain (`i=1`),
+     which is what RFC 8617 requires of a first set. Cloudflare's own set must be
+     `cv=pass`, and it covers everything beneath it. Instances must be contiguous
+     and unduplicated.
   4. The `ARC-Authentication-Results` for that instance exists exactly once. The
      forwarder's seal covers it, so nothing about the forwarder's server naming
      is assumed.
   5. The message has exactly one `From` header, its address is on the lane's
-     `forwarded_from` list, and the recorded results show one of that entry's
+     `forwarded_from` list (an exact address, `*@domain` for that exact domain, or
+     `*` for any), and the recorded results show one of that entry's
      required verdicts passing **aligned with the From domain**: `dmarc`
      (default, the strictest), `dkim`, or `spf`. A pass about some other domain
      does not count.
@@ -49,6 +53,18 @@
   set, records the original hop's verdicts in it, and sets the envelope sender to
   an address you allow. This path has been tested with synthetic messages only; it has
   not yet been confirmed against a real provider's headers.
+
+  The From header must hold exactly one address; a list of mailboxes, a trailing
+  comment or an unparsable header is refused. When several rules could match, only
+  the most specific is used (exact, then domain, then `*`), so a failing exact rule
+  never falls back to a wildcard. Wildcard rules (`*@domain`, `*`) must require
+  `dmarc` and nothing else, and `*@<public suffix>` is refused.
+
+  A `*` rule changes what the lane trusts: the Worker no longer checks that you
+  chose the sender, only that the sender authenticated as itself. Anyone with a
+  properly configured domain who can get mail into your forwarding rule can reach
+  the lane, so the rule's own conditions are the real gate. Message content is
+  still untrusted (see below).
 
   Path B is off unless the deployment lists trusted forwarders **and** the lane
   has `forwarded_from` entries. It trusts the forwarder's own record of the
