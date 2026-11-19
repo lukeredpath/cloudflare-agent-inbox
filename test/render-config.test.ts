@@ -115,9 +115,24 @@ describe("wrangler.example.jsonc", () => {
       }
     });
 
-    it("rejects an admin hostname that repeats another hostname", () => {
-      expect(() => renderConfig(exampleTemplate, { ...base, ...admin, AGENT_INBOX_ADMIN_HOSTNAME: base.AGENT_INBOX_MCP_HOSTNAME! })).toThrow(
+    it("rejects route hostnames that repeat one another", () => {
+      const mcp = base.AGENT_INBOX_MCP_HOSTNAME!;
+      expect(() => renderConfig(exampleTemplate, { ...base, ...admin, AGENT_INBOX_ADMIN_HOSTNAME: mcp })).toThrow("must be a different hostname");
+      expect(() => renderConfig(exampleTemplate, { ...base, ...admin, AGENT_INBOX_ADMIN_HOSTNAME: base.AGENT_INBOX_SHARE_HOSTNAME!.toUpperCase() })).toThrow(
         "must be a different hostname",
+      );
+      expect(() => renderConfig(exampleTemplate, { ...base, AGENT_INBOX_SHARE_HOSTNAME: mcp })).toThrow("must be a different hostname");
+    });
+
+    it("lets the mail hostname share a name with the MCP or share host, as a real deployment does", () => {
+      const mcp = base.AGENT_INBOX_MCP_HOSTNAME!;
+      expect(() => renderConfig(exampleTemplate, { ...base, AGENT_INBOX_MAIL_HOSTNAME: mcp })).not.toThrow();
+      expect(() => renderConfig(exampleTemplate, { ...base, ...admin, AGENT_INBOX_MAIL_HOSTNAME: mcp })).not.toThrow();
+    });
+
+    it("keeps the admin interface off the mail hostname", () => {
+      expect(() => renderConfig(exampleTemplate, { ...base, ...admin, AGENT_INBOX_ADMIN_HOSTNAME: base.AGENT_INBOX_MAIL_HOSTNAME! })).toThrow(
+        "must differ from AGENT_INBOX_MAIL_HOSTNAME",
       );
     });
 

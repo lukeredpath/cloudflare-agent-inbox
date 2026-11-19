@@ -6,7 +6,8 @@ const ENV_PREFIX = "AGENT_INBOX_";
 const RELATIVE_PATH_KEYS = ["main", "migrations_dir", "directory"];
 /** Optional variables that only make sense together: all set, or none. */
 const OPTIONAL_GROUPS = [["ADMIN_HOSTNAME", "ACCESS_TEAM_DOMAIN", "ACCESS_AUD"]];
-const HOSTNAME_KEYS = ["MAIL_HOSTNAME", "MCP_HOSTNAME", "SHARE_HOSTNAME", "ADMIN_HOSTNAME"];
+/** Custom domains the Worker answers on: each needs its own, or one would shadow another. The mail hostname is not one. */
+const ROUTE_HOSTNAME_KEYS = ["MCP_HOSTNAME", "SHARE_HOSTNAME", "ADMIN_HOSTNAME"];
 const SAFE_VALUE = /^[A-Za-z0-9._,@+:/-]+$/;
 
 export interface RenderOptions {
@@ -32,9 +33,14 @@ export function renderConfig(
     }
   }
 
-  const hostnames = HOSTNAME_KEYS.filter(isSet).map((n) => env[ENV_PREFIX + n]!.toLowerCase());
-  if (new Set(hostnames).size !== hostnames.length) {
-    throw new Error(`Each of ${HOSTNAME_KEYS.map((n) => ENV_PREFIX + n).join(", ")} must be a different hostname`);
+  const lower = (name: string) => env[ENV_PREFIX + name]!.toLowerCase();
+  const routes = ROUTE_HOSTNAME_KEYS.filter(isSet).map(lower);
+  if (new Set(routes).size !== routes.length) {
+    throw new Error(`Each of ${ROUTE_HOSTNAME_KEYS.map((n) => ENV_PREFIX + n).join(", ")} must be a different hostname`);
+  }
+  // The mail hostname may share a name with the MCP or share host, but the admin interface stays on its own.
+  if (isSet("ADMIN_HOSTNAME") && isSet("MAIL_HOSTNAME") && lower("ADMIN_HOSTNAME") === lower("MAIL_HOSTNAME")) {
+    throw new Error("AGENT_INBOX_ADMIN_HOSTNAME must differ from AGENT_INBOX_MAIL_HOSTNAME");
   }
 
   // Drop lines that depend on an optional variable that is not set.

@@ -49,8 +49,9 @@ Optional, all or none (see [admin.md](admin.md)):
 | `AGENT_INBOX_ACCESS_TEAM_DOMAIN` | Your Cloudflare Access team domain |
 | `AGENT_INBOX_ACCESS_AUD` | Audience tag of the Access application in front of the admin hostname |
 
-Values may contain letters, digits and `. , @ + : / -` only. The mail, MCP, share and
-admin hostnames must all differ from each other.
+Values may contain letters, digits and `. , @ + : / -` only. The MCP, share and admin
+hostnames are custom domains on the Worker and must all differ from each other. The mail
+hostname may be the same as the MCP or share hostname, but not the admin one.
 
 ## Commands
 

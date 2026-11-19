@@ -26,8 +26,9 @@ changes. Each one is listed here.
 ### Changed
 
 - `npm run build` and `npm run deploy` build the admin app first, and the rendered config now
-  includes an `assets` section. The build refuses duplicate hostnames among the mail, MCP,
-  share and admin hostnames.
+  includes an `assets` section. The build refuses an admin hostname that repeats the MCP,
+  share or mail hostname, and an MCP hostname that repeats the share one. The mail hostname
+  may still be the same as the MCP or share hostname.
 
 ## 0.2.0 (2026-11-19)
 
