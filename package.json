@@ -13,6 +13,7 @@
     "cli": "node src/cli/index.ts",
     "deploy": "node scripts/deploy-cli.ts",
     "build:admin": "vite build",
+    "dev": "node scripts/dev-cli.ts",
     "dev:admin": "vite",
     "build": "npm test && npm run build:admin && npm run render-config"
   },

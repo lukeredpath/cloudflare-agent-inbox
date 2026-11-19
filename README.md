@@ -136,6 +136,7 @@ capabilities you would be comfortable with an attacker steering.
 npx npm@11 install      # npm 10 can hit a peer-dependency bug with Vitest
 npm test                # Vitest inside the Workers runtime
 npm run typecheck
+npm run dev             # local admin interface with synthetic data (docs/admin.md)
 git config core.hooksPath .githooks   # enable the pre-commit scans
 ```
 

@@ -16,6 +16,9 @@ changes. Each one is listed here.
   `AGENT_INBOX_ACCESS_AUD`, set together or not at all. Without them nothing is served on a new
   hostname.
 
+- `npm run dev` runs the admin interface locally with hot reload, a local D1 and R2 holding
+  synthetic data, and a stand-in for Access that never ships (`docs/admin.md`).
+
 ### Changed
 
 - `npm run build` and `npm run deploy` build the admin app first, and the rendered config now

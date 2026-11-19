@@ -1,0 +1,23 @@
+// Local development only (`npm run dev`): a throwaway Worker with local D1 and R2, synthetic
+// values and no routes. Nothing here is deployed or rendered; see docs/admin.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agent-inbox-dev",
+  "main": "src/dev/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "MAIL_HOSTNAME": "mail.example.com",
+    "MCP_HOSTNAME": "mcp.example.com",
+    "SHARE_HOSTNAME": "files.example.com",
+    "DEFAULT_ALLOWED_SENDERS": "sender@example.com",
+    "ALLOWED_DKIM_DOMAINS": "example.com",
+    "TRUSTED_ARC_FORWARDERS": "forwarder.example.net",
+    "ADMIN_HOSTNAME": "localhost",
+    "ACCESS_TEAM_DOMAIN": "dev.example.cloudflareaccess.com",
+    "ACCESS_AUD": "dev-audience"
+  },
+  "d1_databases": [{ "binding": "DB", "database_name": "agent-inbox-dev", "database_id": "local-dev", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "agent-inbox-dev" }],
+  "assets": { "directory": "dist/admin", "binding": "ASSETS", "run_worker_first": true, "not_found_handling": "single-page-application" }
+}

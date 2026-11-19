@@ -56,3 +56,20 @@ hostname, a policy edited by accident) does not leave the console open.
 
 The Worker does not check which user signed in beyond what Access already decided, so keep
 the Access policy as narrow as you would any admin console.
+
+## Local development
+
+```sh
+npm run dev              # starts everything; seeds an empty local database
+npm run dev -- --reseed  # throws the local data away and seeds it again
+```
+
+- **http://localhost:5173** is the app with hot reload. It proxies `/api` to the local Worker.
+- **http://localhost:8799** is the same Worker serving the built app, with the production
+  content security policy. Set `DEV_WORKER_PORT` if that port is taken.
+
+This runs the real Worker, including the real Access check, against a local D1 and R2 holding
+synthetic data (`dev/seed.sql`). `src/dev/worker.ts` stands in for Cloudflare Access: it signs
+a token with a throwaway key for requests to `localhost` and serves the matching public key.
+It is only used by `wrangler.dev.jsonc` and is never part of a deployment. Attachment files
+are not stored locally, so downloads of the seeded attachments will not work.
