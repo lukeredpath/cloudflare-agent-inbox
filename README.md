@@ -110,7 +110,8 @@ captured by a tool or transcript.
 ## Admin interface (in development)
 
 An optional web interface for the same tasks, served by the Worker on its own hostname behind
-Cloudflare Access. It is off unless configured; see [docs/admin.md](docs/admin.md).
+Cloudflare Access. It is off unless configured; see [docs/admin.md](docs/admin.md). To try it
+without deploying anything, see [Running the admin interface locally](#running-the-admin-interface-locally).
 
 ## Configuration
 
@@ -136,9 +137,26 @@ capabilities you would be comfortable with an attacker steering.
 npx npm@11 install      # npm 10 can hit a peer-dependency bug with Vitest
 npm test                # Vitest inside the Workers runtime
 npm run typecheck
-npm run dev             # local admin interface with synthetic data (docs/admin.md)
+npm run build:admin     # build the admin app into dist/admin
+npm run dev             # the admin interface locally, with synthetic data
 git config core.hooksPath .githooks   # enable the pre-commit scans
 ```
+
+### Running the admin interface locally
+
+```sh
+npm run dev              # starts everything; seeds an empty local database
+npm run dev -- --reseed  # throws the local data away and seeds it again
+```
+
+- <http://localhost:5173> is the app with hot reload.
+- <http://localhost:8799> is the same Worker serving the built app, with the production
+  content security policy. Set `DEV_WORKER_PORT` if that port is taken.
+
+It runs the real Worker, including the real Access check, against a local D1 and R2
+holding synthetic data (`dev/seed.sql`). A dev-only entry (`src/dev/worker.ts`) stands in for
+Cloudflare Access and is never part of a deployment. Seeded attachments have no stored
+files, so downloading them does not work. Details are in [docs/admin.md](docs/admin.md#local-development).
 
 The pre-commit hook scans for personal values using a denylist you keep
 outside the repository (`.pii-denylist`, which is git-ignored, or
