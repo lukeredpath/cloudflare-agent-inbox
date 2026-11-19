@@ -107,6 +107,11 @@ session unless `--yes` is passed. Automation should not pass `--yes`.
 `agents create` refuses to run unless it has a terminal, so a token is never
 captured by a tool or transcript.
 
+## Admin interface (in development)
+
+An optional web interface for the same tasks, served by the Worker on its own hostname behind
+Cloudflare Access. It is off unless configured; see [docs/admin.md](docs/admin.md).
+
 ## Configuration
 
 Deployment values (hostnames, allowed senders, DKIM domains) are never

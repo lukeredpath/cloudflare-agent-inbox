@@ -3,6 +3,25 @@
 Releases are 0.x while the project is experimental: any release can contain breaking
 changes. Each one is listed here.
 
+## Unreleased
+
+### Added
+
+- The groundwork for an optional admin interface, served by the Worker on its own hostname
+  behind Cloudflare Access (`docs/admin.md`). The Worker verifies the Access token on every
+  request and fails closed, sends a strict content security policy, and requires same-origin
+  JSON for changes. The app is a Preact single-page app built with Vite and served as static
+  assets; for now it is a placeholder that lists lanes.
+- Optional build variables: `AGENT_INBOX_ADMIN_HOSTNAME`, `AGENT_INBOX_ACCESS_TEAM_DOMAIN` and
+  `AGENT_INBOX_ACCESS_AUD`, set together or not at all. Without them nothing is served on a new
+  hostname.
+
+### Changed
+
+- `npm run build` and `npm run deploy` build the admin app first, and the rendered config now
+  includes an `assets` section. The build refuses duplicate hostnames among the mail, MCP,
+  share and admin hostnames.
+
 ## 0.2.0 (2026-11-19)
 
 ### Added

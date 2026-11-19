@@ -41,17 +41,25 @@ and secrets, marked as secrets so they are masked in build logs.
 | `AGENT_INBOX_ALLOWED_DKIM_DOMAINS` | Comma-separated domains whose DKIM pass is accepted (direct mail you send or forward by hand) |
 | `AGENT_INBOX_TRUSTED_ARC_FORWARDERS` | Comma-separated forwarders (for example your mailbox provider's domain) whose ARC record of the original sender is trusted. Lanes opt in with `--forwarded-from`; see [security.md](security.md) |
 
-Values may contain letters, digits and `. , @ + : / -` only. The MCP and share
-hostnames must differ from each other.
+Optional, all or none (see [admin.md](admin.md)):
+
+| Variable | Meaning |
+| --- | --- |
+| `AGENT_INBOX_ADMIN_HOSTNAME` | Custom domain serving the admin interface |
+| `AGENT_INBOX_ACCESS_TEAM_DOMAIN` | Your Cloudflare Access team domain |
+| `AGENT_INBOX_ACCESS_AUD` | Audience tag of the Access application in front of the admin hostname |
+
+Values may contain letters, digits and `. , @ + : / -` only. The mail, MCP, share and
+admin hostnames must all differ from each other.
 
 ## Commands
 
-- **Local:** `npm run deploy`. It renders the config, then orders the steps by whether
+- **Local:** `npm run deploy`. It builds the admin app and renders the config, then orders the steps by whether
   the D1 database exists (`wrangler d1 list`): on a fresh account it deploys first,
   which provisions D1 and R2, then migrates; otherwise it migrates first, then
   deploys. `wrangler d1 migrations apply` does not follow the redirect file, so the
   migrate step passes the rendered config explicitly with `-c`.
-- **Workers Builds:** build command `npm run build` (runs the tests, then renders
+- **Workers Builds:** build command `npm run build` (runs the tests, builds the admin app, then renders
   the config), deploy command `npm run deploy`. If the build token cannot list
   databases the script assumes the database exists, so on a fresh account run
   `npx wrangler deploy` once as the deploy command, then switch back.
@@ -77,6 +85,7 @@ subaddressing: `inbox+<token>@<mail hostname>`.
 | Name | Kind | Meaning |
 | --- | --- | --- |
 | `MAIL_HOSTNAME`, `MCP_HOSTNAME`, `SHARE_HOSTNAME` | variable | rendered from the build variables above |
+| `ADMIN_HOSTNAME`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | variable, optional | the admin interface; rendered only when all three build variables are set |
 | `DEFAULT_ALLOWED_SENDERS`, `ALLOWED_DKIM_DOMAINS`, `TRUSTED_ARC_FORWARDERS` | variable | rendered from the build variables above |
 | `MAX_REJECTED_PER_DAY` | variable, optional | per-bucket cap on logged rejections (default 50) |
 | `LANE_SECRET_*` | secret | passwords for lane transforms, set with `secrets set` |

@@ -191,6 +191,13 @@ It prints metadata only. A message body is printed only with an explicit
 stripped of terminal escape sequences and invisible characters before printing.
 `agents create` refuses to print a token unless it has an interactive terminal.
 
+## The admin interface
+
+Optional, and off unless configured. It relies on Cloudflare Access for sign-in, and the Worker
+additionally verifies the Access token on every request, failing closed, so a misconfigured
+Access application does not expose it. The Access policy itself is yours to set. See
+[admin.md](admin.md).
+
 ## Limits of this design
 
 This project does not try to detect malicious content. If an agent that reads a
