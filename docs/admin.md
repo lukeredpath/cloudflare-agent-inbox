@@ -110,6 +110,21 @@ a token with a throwaway key for requests to `localhost` and serves the matching
 It is only used by `wrangler.dev.jsonc` and is never part of a deployment. Attachment files
 are not stored locally, so downloads of the seeded attachments will not work.
 
+### Regenerating the screenshots
+
+The pictures on the website and in the README come from the same seed data. After a change
+to how the interface looks, regenerate them:
+
+```sh
+npx playwright-core install chromium   # once, for the browser
+brew install webp                      # once, for cwebp (libwebp-tools on Debian and Ubuntu)
+npm run screenshots
+```
+
+It starts its own copy of the dev stack, so stop `npm run dev` first (it needs ports 5173
+and 8799). The files are written to `site/screenshots/` as lossless WebP, one per colour
+scheme. Set `CHROMIUM_PATH` to use a browser you already have.
+
 ## Verifying a deployment, and rolling back
 
 The order matters. Create the Access application and its policy first (Access can protect a
