@@ -58,6 +58,11 @@ Pushing, tagging and publishing are outward-facing: do them only when asked.
   The `Db` interface is the only database surface; the Worker backs it with D1, the CLI with the API.
 - `src/worker/`: `email.ts` (ingest pipeline), `ingest.ts` (parse + policy), `transforms.ts` and
   `unzip.ts`, `mcp.ts` (agent tools), `share.ts`, `purge.ts` (cron), `index.ts` (host-based routing).
+- `src/worker/admin/`: the optional admin host: `access.ts` (Access JWT check), `index.ts` (headers, routing),
+  `api.ts` and `routes/` (the JSON API), `views.ts` (core objects to JSON), `types.ts` (shared with the app).
+- `src/admin/`: the admin app (Preact + Vite, built into `dist/admin`). `style.css` is the only stylesheet;
+  `lane-form-model.ts` holds the lane form's pure rules (tested in `test/admin-lane-form.test.ts`).
+- `src/dev/worker.ts` and `wrangler.dev.jsonc`: local development only (`npm run dev`), never deployed.
 - `src/cli/`: `commands.ts` (logic), `program.ts` (commander wiring), `cloudflare.ts` and `node.ts`
   (the real API and terminal). Commands take a `CliContext`, so tests run them against local D1.
 - `migrations/`: D1 migrations, applied by `npm run deploy`.
@@ -69,4 +74,8 @@ Pushing, tagging and publishing are outward-facing: do them only when asked.
 - Agent-facing text that comes from email is returned under fields named `untrusted*`.
 - Agent reads are scoped to granted lanes inside the SQL itself (`AGENT_SCOPE` in `core/messages.ts`).
 - Lane-config schemas have no defaults on the patch side, so an update never resets other fields.
+- Admin API fields that come from email are named `untrusted_*`; the admin app renders them only through
+  `Untrusted` / `UntrustedInline` (`src/admin/ui.tsx`). Never use `dangerouslySetInnerHTML`, and no inline
+  `style` or script (the CSP forbids them): one-offs become classes in `style.css`.
+- Admin list and detail responses never include a message body; it has its own endpoint.
 - The CLI never prints bodies without `--show-body`; `test/cli.test.ts` has a sentinel test for it.

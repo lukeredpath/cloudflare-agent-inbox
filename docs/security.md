@@ -195,8 +195,10 @@ stripped of terminal escape sequences and invisible characters before printing.
 
 Optional, and off unless configured. It relies on Cloudflare Access for sign-in, and the Worker
 additionally verifies the Access token on every request, failing closed, so a misconfigured
-Access application does not expose it. The Access policy itself is yours to set. See
-[admin.md](admin.md).
+Access application does not expose it. The Access policy itself is yours to set. Email content
+is only rendered as text (the app never sets HTML from data and the content security policy
+forbids inline script), the API names it `untrusted_*`, and a message body is returned only
+by its own endpoint when asked for. See [admin.md](admin.md).
 
 ## Limits of this design
 

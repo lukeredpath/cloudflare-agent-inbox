@@ -7,11 +7,15 @@ changes. Each one is listed here.
 
 ### Added
 
-- The groundwork for an optional admin interface, served by the Worker on its own hostname
-  behind Cloudflare Access (`docs/admin.md`). The Worker verifies the Access token on every
-  request and fails closed, sends a strict content security policy, and requires same-origin
-  JSON for changes. The app is a Preact single-page app built with Vite and served as static
-  assets; for now it is a placeholder that lists lanes.
+- An optional admin interface, served by the Worker on its own hostname behind Cloudflare
+  Access (`docs/admin.md`): an overview with what needs attention, lanes (create, edit, pause,
+  grant, rotate, delete), messages (with attachment download), agents (the token is shown
+  once) and the rejection log, with a command palette, keyboard shortcuts and light and dark
+  themes. It covers the CLI except `secrets set` and `messages inject-test`.
+- The Worker verifies the Access token on every request and fails closed, sends a strict
+  content security policy, and requires same-origin JSON for changes. Email content is shown
+  only as text, the API names it `untrusted_*`, and bodies are fetched only on request. The
+  app is a Preact single-page app built with Vite and served as static assets.
 - Optional build variables: `AGENT_INBOX_ADMIN_HOSTNAME`, `AGENT_INBOX_ACCESS_TEAM_DOMAIN` and
   `AGENT_INBOX_ACCESS_AUD`, set together or not at all. Without them nothing is served on a new
   hostname.

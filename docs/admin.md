@@ -1,12 +1,42 @@
-# Admin interface (in development)
+# Admin interface
 
 An optional web interface for the things the CLI does: lanes, messages, agents and the
 rejection log. It is served by the same Worker on its own hostname and is **off unless you
 configure it**. Nothing changes for a deployment that does not.
 
-**Status:** the Worker side is in place (the Access check, a JSON API skeleton, and serving
-the built app). The app itself is a placeholder that lists lanes; the real screens are still
-to come. Treat this page as the contract the finished interface will keep.
+## What it does
+
+- **Overview:** every lane with its counts, and what needs attention: transform failures,
+  paused lanes and recent rejections.
+- **Lanes:** create, edit (every setting, including forwarded-from rules with a list editor
+  and bulk paste), pause and resume, grant and ungrant agents, rotate the address, delete.
+  The address is masked until you reveal it, and active share links are listed without the
+  links themselves.
+- **Messages:** filter by lane and status, search the loaded list, and open one to see its
+  envelope, attachments (with download) and transform errors. Mark it unprocessed, keep it
+  or delete it.
+- **Agents:** create (the token is shown once, kept only in memory until you dismiss it),
+  and revoke.
+- **Rejections:** the log, with an optional diagnostics view.
+- A command palette (`⌘K`), keyboard shortcuts (`?`), light and dark themes, and a layout
+  that works on a phone.
+
+`secrets set` and `messages inject-test` stay in the CLI: setting a Worker secret needs a
+Cloudflare API token that the Worker should not hold.
+
+## Handling untrusted content
+
+Subjects, senders, bodies, filenames and error text come from email, so the interface treats
+them as hostile:
+
+- They are shown only as text, in a marked amber block or chip, never as markup. The app
+  contains no code that sets HTML from data, and the content security policy forbids inline
+  script, so a message cannot run anything.
+- The API names every such field `untrusted_*`, the same rule as the agent-facing MCP.
+- Message bodies are never part of a list or detail response. A body is fetched only when
+  you press "Show body".
+- Agent tokens and full lane addresses come back only from the request that creates or
+  reveals them, and are not stored in the browser.
 
 ## Put it behind Cloudflare Access
 
@@ -73,3 +103,10 @@ synthetic data (`dev/seed.sql`). `src/dev/worker.ts` stands in for Cloudflare Ac
 a token with a throwaway key for requests to `localhost` and serves the matching public key.
 It is only used by `wrangler.dev.jsonc` and is never part of a deployment. Attachment files
 are not stored locally, so downloads of the seeded attachments will not work.
+
+## Not yet verified on a live deployment
+
+The Access check is tested against tokens signed in the test suite and by the local stand-in,
+not against a real Cloudflare Access application. On a first deployment, check that the
+interface loads, that a request without Access (for example from a different hostname that
+points at the same Worker) is refused, and that signing out and back in works.

@@ -107,11 +107,13 @@ session unless `--yes` is passed. Automation should not pass `--yes`.
 `agents create` refuses to run unless it has a terminal, so a token is never
 captured by a tool or transcript.
 
-## Admin interface (in development)
+## Admin interface
 
-An optional web interface for the same tasks, served by the Worker on its own hostname behind
-Cloudflare Access. It is off unless configured; see [docs/admin.md](docs/admin.md). To try it
-without deploying anything, see [Running the admin interface locally](#running-the-admin-interface-locally).
+An optional web interface for the same tasks as the CLI (lanes, messages, agents and the
+rejection log), served by the Worker on its own hostname behind Cloudflare Access. Email
+content is only ever shown as text, and message bodies appear only when asked for. It is off
+unless configured; see [docs/admin.md](docs/admin.md). To try it without deploying anything,
+see [Running the admin interface locally](#running-the-admin-interface-locally).
 
 ## Configuration
 
