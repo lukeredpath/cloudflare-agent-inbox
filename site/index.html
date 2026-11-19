@@ -189,7 +189,7 @@
   }
   :root[data-theme="dark"] .shot .light { display: none; }
   :root[data-theme="dark"] .shot .dark { display: block; }
-  figcaption { font-size: .9rem; color: var(--secondary); margin-top: .65rem; max-width: 46em; }
+  figcaption { font-size: .9rem; color: var(--secondary); margin-top: .65rem; }
 
   /* A pseudo terminal: real, selectable text. It is dark in both themes, as terminals usually are. */
   .terminal { margin: 0 0 2rem; border: 1px solid #2a3a50; border-radius: 8px; overflow: hidden; background: #101a2a; color: #d3dae3; }
@@ -285,19 +285,18 @@
       <p class="intro">
         The command-line tool does everything. An optional admin interface does the
         day-to-day tasks in a browser, on its own hostname behind Cloudflare Access.
-        All the data in these pictures is invented.
       </p>
 
       <figure class="shot">
         <a class="light" href="screenshots/overview-light.webp"><img src="screenshots/overview-light.webp" width="1280" height="820" loading="lazy" alt="The admin overview in light mode. A Needs attention panel lists two transform failures, a paused lane and four recent rejections, above a table of five lanes with their message counts and when each last received mail."></a>
         <a class="dark" href="screenshots/overview-dark.webp"><img src="screenshots/overview-dark.webp" width="1280" height="820" loading="lazy" alt="The admin overview in dark mode. A Needs attention panel lists two transform failures, a paused lane and four recent rejections, above a table of five lanes with their message counts and when each last received mail."></a>
-        <figcaption>The overview lists every lane and anything that needs attention. Lanes can be created, edited, paused and deleted from here, and agents granted or revoked.</figcaption>
+        <figcaption>Every lane at a glance, and anything that needs attention. Lanes and agents are managed from here.</figcaption>
       </figure>
 
       <figure class="shot">
         <a class="light" href="screenshots/message-light.webp"><img src="screenshots/message-light.webp" width="1280" height="900" loading="lazy" alt="A message in the admin interface, in light mode. The subject, the body, the original sender and the agent's note each sit inside a dashed amber block labelled as untrusted email content. The body text is an invented attempt to give an agent instructions."></a>
         <a class="dark" href="screenshots/message-dark.webp"><img src="screenshots/message-dark.webp" width="1280" height="900" loading="lazy" alt="A message in the admin interface, in dark mode. The subject, the body, the original sender and the agent's note each sit inside a dashed amber block labelled as untrusted email content. The body text is an invented attempt to give an agent instructions."></a>
-        <figcaption>Anything that came from an email is shown as plain text in a marked block, never as markup, and a message body is only fetched when asked for. This one is an invented attempt to give an agent instructions.</figcaption>
+        <figcaption>Email text is shown as plain text in a marked block, and a body loads only on request. This one is an invented attempt to trick an agent.</figcaption>
       </figure>
 
       <p>
