@@ -1,43 +1,49 @@
-import { useEffect, useState } from "preact/hooks";
-import type { LaneListItem, SessionView } from "../worker/admin/types.ts";
-import { api } from "./api.ts";
+import { DialogHost } from "./dialogs.tsx";
+import { useRoute, type Route } from "./router.ts";
+import { AgentsScreen } from "./screens/agents.tsx";
+import { LaneFormScreen } from "./screens/lane-form.tsx";
+import { LaneScreen } from "./screens/lane.tsx";
+import { MessageScreen } from "./screens/message.tsx";
+import { MessagesScreen } from "./screens/messages.tsx";
+import { Overview } from "./screens/overview.tsx";
+import { RejectionsScreen } from "./screens/rejections.tsx";
+import { Shell } from "./shell.tsx";
+import { Toasts } from "./toast.tsx";
+import { NotFound } from "./ui.tsx";
 
-type Loaded<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
-
-function useApi<T>(path: string): Loaded<T> {
-  const [result, setResult] = useState<Loaded<T>>({ state: "loading" });
-  useEffect(() => {
-    let live = true;
-    api<T>(path).then(
-      (data) => live && setResult({ state: "ready", data }),
-      (e: Error) => live && setResult({ state: "error", message: e.message }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [path]);
-  return result;
+function Screen({ route }: { route: Route }) {
+  switch (route.name) {
+    case "overview":
+      return <Overview />;
+    case "messages":
+      return <MessagesScreen lane={route.lane} status={route.status} />;
+    case "message":
+      return <MessageScreen id={route.id} />;
+    case "agents":
+      return <AgentsScreen />;
+    case "rejections":
+      return <RejectionsScreen />;
+    case "new-lane":
+      return <LaneFormScreen slug={null} />;
+    case "lane":
+      return <LaneScreen slug={route.slug} />;
+    case "edit-lane":
+      return <LaneFormScreen slug={route.slug} />;
+    default:
+      return <NotFound />;
+  }
 }
 
-// A placeholder shell: the real screens come from the design.
 export function App() {
-  const session = useApi<SessionView>("/api/session");
-  const lanes = useApi<LaneListItem[]>("/api/lanes");
-
+  const route = useRoute();
   return (
-    <main>
-      <h1>Agent Inbox</h1>
-      <p>{session.state === "ready" ? `Signed in${session.data.email ? ` as ${session.data.email}` : ""}.` : "Checking your session…"}</p>
-      {lanes.state === "error" && <p role="alert">{lanes.message}</p>}
-      {lanes.state === "ready" && (
-        <ul>
-          {lanes.data.map((l) => (
-            <li key={l.slug}>
-              {l.slug} ({l.status}): {l.unprocessed_count} unprocessed of {l.message_count}
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+    <>
+      <Shell route={route}>
+        {/* Keyed by route so each screen starts with fresh state. */}
+        <Screen key={JSON.stringify(route)} route={route} />
+      </Shell>
+      <Toasts />
+      <DialogHost />
+    </>
   );
 }
