@@ -9,7 +9,7 @@ changes. Each one is listed here.
 
 - `forwarded_from` accepts `*@domain` (exactly that domain, not subdomains) and `*`
   (any From address). Wildcards must require exactly `dmarc`, may not be a public
-  suffix, and each pattern may appear once per lane. The most specific rule for the
+  suffix, and each pattern may appear once per lane. A lane may hold up to 100 rules (was 10). The most specific rule for the
   From address is the only one tried: an exact address, then a domain, then `*`.
 
 ### Fixed

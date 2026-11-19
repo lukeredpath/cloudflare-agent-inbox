@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { findForwarderResults, parseAuthResults, parseTags } from "../src/core/arc";
 import { checkSender, type SenderPolicy } from "../src/core/check-sender";
 import type { Db } from "../src/core/db";
-import { LaneInput, LanePatch } from "../src/core/lane-config";
+import { LaneInput, LanePatch, MAX_FORWARDED_RULES } from "../src/core/lane-config";
 import { parseHeaders } from "../src/core/headers";
 import { createLane, getLaneBySlug, updateLane, type Lane } from "../src/core/lanes";
 import { handleEmail } from "../src/worker/email";
@@ -468,9 +468,10 @@ describe("forwarded rule validation", () => {
     }
   });
 
-  it("refuses duplicate patterns, and more than 10 rules, for both creation and patching", () => {
+  it("refuses duplicate patterns, and more than the maximum number of rules, for both creation and patching", () => {
     bad([{ from: "*", require: ["dmarc"] }, { from: "*", require: ["dmarc"] }]);
-    bad(Array.from({ length: 11 }, (_, i) => ({ from: `*@d${i}.example.com`, require: ["dmarc"] })));
+    ok(Array.from({ length: MAX_FORWARDED_RULES }, (_, i) => ({ from: `*@d${i}.example.com`, require: ["dmarc"] })));
+    bad(Array.from({ length: MAX_FORWARDED_RULES + 1 }, (_, i) => ({ from: `*@d${i}.example.com`, require: ["dmarc"] })));
     expect(LaneInput.safeParse({ slug: "a", forwarded_from: [{ from: "*", require: ["spf"] }] }).success).toBe(false);
     expect(LaneInput.safeParse({ slug: "a", forwarded_from: [{ from: "*" }] }).success).toBe(true);
   });

@@ -52,6 +52,9 @@ export function fromKind(from: string): FromKind | null {
  * `require` is any-of; the default is the strictest sensible one, DMARC. A wildcard
  * vouches for senders nobody listed, so it may require nothing but DMARC.
  */
+/** Rules are matched in memory for each message, so the cap only keeps the stored lane small. */
+export const MAX_FORWARDED_RULES = 100;
+
 export const ForwardedFromRule = z
   .strictObject({
     from: z
@@ -93,7 +96,7 @@ const fields = {
   attachment_policy: AttachmentPolicy,
   forwarded_from: z
     .array(ForwardedFromRule)
-    .max(10)
+    .max(MAX_FORWARDED_RULES)
     .refine((rules) => new Set(rules.map((r) => r.from)).size === rules.length, "each From pattern may appear only once"),
   shareable: z.boolean(),
   max_bytes: z.number().int().min(1024).max(HARD_MAX_MESSAGE_BYTES),
