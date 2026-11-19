@@ -25,15 +25,18 @@ interface Shot {
   prepare?: (page: Page) => Promise<void>;
   /** Something that is only on screen once the page is ready. */
   ready: string;
+  /** The part of the page to keep, in CSS pixels. The website column is narrower than the page, so a crop reads larger. */
+  clip: { x: number; y: number; width: number; height: number };
 }
 
 const SHOTS: Shot[] = [
-  { name: "overview", hash: "#overview", height: 820, ready: "text=Needs attention" },
+  { name: "overview", hash: "#overview", height: 820, ready: "text=Needs attention", clip: { x: 244, y: 64, width: 1020, height: 736 } },
   {
     name: "message",
     hash: "#messages/01DEV0000000000000000MSG04",
     height: 900,
     ready: "text=Body not loaded",
+    clip: { x: 244, y: 64, width: 1020, height: 590 },
     // The body is only fetched on request, so the picture shows it being asked for.
     prepare: async (page) => {
       await page.getByRole("button", { name: "Show body" }).click();
@@ -102,7 +105,7 @@ try {
         await page.waitForLoadState("networkidle");
         await shot.prepare?.(page);
         const path = `${OUT}/${shot.name}-${scheme}.webp`;
-        const encoded = spawnSync("cwebp", ["-quiet", "-lossless", "-z", "9", "-o", path, "--", "-"], { input: await page.screenshot() });
+        const encoded = spawnSync("cwebp", ["-quiet", "-lossless", "-z", "9", "-o", path, "--", "-"], { input: await page.screenshot({ clip: shot.clip }) });
         if (encoded.status !== 0) throw new Error(`cwebp failed: ${encoded.stderr}`);
         console.log(`wrote ${path}`);
         await page.close();
