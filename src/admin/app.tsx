@@ -33,7 +33,7 @@ export function App() {
         <ul>
           {lanes.data.map((l) => (
             <li key={l.slug}>
-              {l.slug} ({l.status}): {l.unprocessedCount} unprocessed of {l.messageCount}
+              {l.slug} ({l.status}): {l.unprocessed_count} unprocessed of {l.message_count}
             </li>
           ))}
         </ul>

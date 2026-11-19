@@ -168,7 +168,7 @@ export async function markProcessed(db: Db, agentId: string, agentName: string, 
 
 export async function listMessagesAdmin(
   db: Db,
-  opts: { laneId?: string; unprocessedOnly?: boolean; limit?: number } = {},
+  opts: { laneId?: string; unprocessedOnly?: boolean; processedOnly?: boolean; limit?: number } = {},
 ): Promise<MessageRow[]> {
   const where = ["m.deleted_at IS NULL"];
   const params: (string | number)[] = [];
@@ -177,12 +177,23 @@ export async function listMessagesAdmin(
     params.push(opts.laneId);
   }
   if (opts.unprocessedOnly) where.push("m.processed_at IS NULL");
+  if (opts.processedOnly) where.push("m.processed_at IS NOT NULL");
   params.push(clampLimit(opts.limit));
   return db.all<MessageRow>(`${MESSAGE_SELECT} WHERE ${where.join(" AND ")} ORDER BY m.received_at DESC LIMIT ?`, params);
 }
 
 export async function getMessageAdmin(db: Db, id: string): Promise<MessageRow | null> {
   return db.first<MessageRow>(`${MESSAGE_SELECT} WHERE m.deleted_at IS NULL AND m.id = ?`, [id]);
+}
+
+/** An attachment on a message that still exists, whichever lane it is in. */
+export async function getAttachmentAdmin(db: Db, attachmentId: string): Promise<AttachmentRow | null> {
+  return db.first<AttachmentRow>(
+    `SELECT a.id, a.message_id, a.parent_id, a.filename, a.content_type, a.size, a.r2_key, a.transform_error
+       FROM attachments a JOIN messages m ON m.id = a.message_id
+      WHERE m.deleted_at IS NULL AND a.id = ?`,
+    [attachmentId],
+  );
 }
 
 export async function markUnprocessed(db: Db, id: string): Promise<boolean> {

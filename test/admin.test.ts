@@ -100,7 +100,7 @@ describe("admin API", () => {
     const res = await call("/api/lanes", await signedIn());
     const text = await res.text();
     expect(JSON.parse(text)).toEqual([
-      { slug: "bills", description: "Monthly bills", status: "active", messageCount: 0, unprocessedCount: 0, lastReceivedAt: null },
+      { slug: "bills", description: "Monthly bills", status: "active", message_count: 0, unprocessed_count: 0, last_received_at: null, agent_count: 0 },
     ]);
     expect(text).not.toContain(lane.addressToken);
   });
