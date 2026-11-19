@@ -10,7 +10,8 @@ export default defineConfig({
   build: { outDir: "../../dist/admin", emptyOutDir: true, sourcemap: false },
   server: {
     proxy: {
-      "/api": { target: `http://localhost:${process.env.DEV_WORKER_PORT ?? "8799"}`, headers: { host: "localhost:5173" } },
+      // Anchored with a slash: a bare "/api" would also catch the app's own /api.ts module.
+      "^/api/": { target: `http://localhost:${process.env.DEV_WORKER_PORT ?? "8799"}`, headers: { host: "localhost:5173" } },
     },
   },
 });
