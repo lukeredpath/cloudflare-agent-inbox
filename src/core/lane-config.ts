@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isPublicSuffix } from "./domains.ts";
 
 export const MIB = 1024 * 1024;
 /** Cloudflare Email Routing rejects anything larger than this before it reaches a Worker. */
@@ -30,20 +31,49 @@ export type AttachmentPolicy = z.infer<typeof AttachmentPolicy>;
 export const VERDICTS = ["dmarc", "dkim", "spf"] as const;
 export type Verdict = (typeof VERDICTS)[number];
 
+/** A single address: no whitespace, separators, brackets or wildcards. */
+export const EXACT_ADDRESS = /^[^\s@<>,;*()"]+@[^\s@<>,;*()"]+\.[^\s@<>,;*()"]+$/;
+const DOMAIN_WILDCARD = /^\*@([a-z0-9-]+(?:\.[a-z0-9-]+)+)$/;
+
+export type FromKind = "exact" | "domain" | "any";
+
+/** What a rule's `from` is, or null if it is not a valid address, `*@domain` or `*`. */
+export function fromKind(from: string): FromKind | null {
+  if (from === "*") return "any";
+  const domain = DOMAIN_WILDCARD.exec(from)?.[1];
+  if (domain) return isPublicSuffix(domain) ? null : "domain";
+  return EXACT_ADDRESS.test(from) ? "exact" : null;
+}
+
 /**
  * Mail forwarded by a trusted forwarder (see TRUSTED_ARC_FORWARDERS) is accepted
  * only when the forwarder's ARC record shows the original sender authenticated.
- * `require` is any-of; the default is the strictest sensible one, DMARC.
+ * `from` is an address, `*@domain` (that exact domain, not its subdomains) or `*`.
+ * `require` is any-of; the default is the strictest sensible one, DMARC. A wildcard
+ * vouches for senders nobody listed, so it may require nothing but DMARC.
  */
-export const ForwardedFromRule = z.strictObject({
-  from: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/),
-  require: z.array(z.enum(VERDICTS)).min(1).max(3).default(["dmarc"]),
-});
+export const ForwardedFromRule = z
+  .strictObject({
+    from: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .refine((v) => fromKind(v) !== null, "must be an address, *@domain (not a public suffix) or *"),
+    require: z.array(z.enum(VERDICTS)).min(1).max(3).default(["dmarc"]),
+  })
+  .refine((r) => fromKind(r.from) === "exact" || (r.require.length === 1 && r.require[0] === "dmarc"), {
+    message: "a wildcard rule must require exactly dmarc",
+    path: ["require"],
+  });
 export type ForwardedFromRule = z.infer<typeof ForwardedFromRule>;
+
+/** The rule for a From address: an exact match, else its domain's wildcard, else `*`. Only that one is used. */
+export function findForwardedRule(rules: ForwardedFromRule[], address: string): ForwardedFromRule | undefined {
+  const domain = address.slice(address.lastIndexOf("@") + 1);
+  return (
+    rules.find((r) => r.from === address) ?? rules.find((r) => r.from === `*@${domain}`) ?? rules.find((r) => r.from === "*")
+  );
+}
 
 export const DEFAULT_MAX_BYTES = 10 * MIB;
 export const DEFAULT_MAX_TEXT_CHARS = 50_000;
@@ -61,7 +91,10 @@ const fields = {
   description: z.string().max(500),
   allowed_senders: z.array(address).min(1).max(20).nullable(),
   attachment_policy: AttachmentPolicy,
-  forwarded_from: z.array(ForwardedFromRule).max(10),
+  forwarded_from: z
+    .array(ForwardedFromRule)
+    .max(10)
+    .refine((rules) => new Set(rules.map((r) => r.from)).size === rules.length, "each From pattern may appear only once"),
   shareable: z.boolean(),
   max_bytes: z.number().int().min(1024).max(HARD_MAX_MESSAGE_BYTES),
   max_text_chars: z.number().int().min(100).max(500_000),

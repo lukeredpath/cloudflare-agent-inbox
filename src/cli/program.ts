@@ -17,7 +17,7 @@ function laneOptions(cmd: Command, forCreate: boolean): Command {
     .option("--allowed-sender <address>", "envelope sender allowed on this lane (repeatable; default: the deployment's list)", collect)
     .option(
       "--forwarded-from <rule>",
-      "accept mail forwarded by a trusted forwarder from this original sender: address or address=dmarc,dkim,spf (repeatable; default dmarc)",
+      "accept mail forwarded by a trusted forwarder from this original sender: address, *@domain or * (quote the *), optionally =dmarc,dkim,spf; wildcards need dmarc (repeatable; default dmarc)",
       collect,
     )
     .option("--shareable", "let agents create share links for this lane's files")

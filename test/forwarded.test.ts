@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { findForwarderResults, parseAuthResults, parseTags } from "../src/core/arc";
 import { checkSender, type SenderPolicy } from "../src/core/check-sender";
 import type { Db } from "../src/core/db";
+import { LaneInput, LanePatch } from "../src/core/lane-config";
 import { parseHeaders } from "../src/core/headers";
 import { createLane, getLaneBySlug, updateLane, type Lane } from "../src/core/lanes";
 import { handleEmail } from "../src/worker/email";
@@ -340,5 +341,143 @@ describe("domain helpers", () => {
     expect(sameOrganisation("example.com", "example.org")).toBe(false);
     expect(isSameOrParent("example.com", "mail.example.com")).toBe(true);
     expect(isSameOrParent("mail.example.com", "example.com")).toBe(false);
+  });
+});
+
+describe("a forwarder that is the first ARC hop (i=1, cv=none)", () => {
+  const first = (arc: ArcOptions = {}, eml: Parameters<typeof buildEml>[0] = {}) => forwarded({ firstHop: true, ...arc }, eml);
+
+  it("is accepted: the first set of a chain has nothing to validate", () => {
+    expect(check(first())).toMatchObject({ allowed: true, path: "forwarded" });
+  });
+
+  it("is refused when Cloudflare's own set did not validate", () => {
+    expect(check(first({ topCv: "fail" }))).toMatchObject({ allowed: false, detail: expect.stringContaining("Cloudflare's ARC set did not validate") });
+    expect(check(forwarded({ topCv: "none" }))).toMatchObject({ allowed: false });
+  });
+
+  it("is refused when the forwarder's set failed, or says none while not first", () => {
+    expect(check(first({ forwarderCv: "fail" })).allowed).toBe(false);
+    expect(check(forwarded({ forwarderCv: "none" }))).toMatchObject({ allowed: false, detail: expect.stringContaining("did not validate") });
+  });
+});
+
+describe("wildcard forwarded_from rules", () => {
+  const WILD: { from: string; require: ("dmarc" | "dkim" | "spf")[] }[] = [{ from: "*", require: ["dmarc"] }];
+  const rules = (...r: { from: string; require: ("dmarc" | "dkim" | "spf")[] }[]) => ({ forwardedFrom: r });
+  const dmarcFor = (domain: string) => `arc=pass; dmarc=pass header.from=${domain}`;
+  const from = (address: string, recordedDomain: string, arc: ArcOptions = {}) =>
+    forwarded({ firstHop: true, recorded: dmarcFor(recordedDomain), ...arc }, { from: address });
+
+  it("`*` accepts any From domain the forwarder recorded an aligned dmarc pass for", () => {
+    expect(check(from("a@anything.example.com", "anything.example.com"), { forwardedFrom: [...WILD] })).toMatchObject({
+      allowed: true,
+      summary: "arc via forwarder.example.net: dmarc=pass header.from=anything.example.com",
+    });
+  });
+
+  it("`*@domain` matches exactly that domain, not another TLD or a subdomain", () => {
+    const p = rules({ from: "*@shop.example.co.uk", require: ["dmarc"] });
+    expect(check(from("orders@shop.example.co.uk", "shop.example.co.uk"), p).allowed).toBe(true);
+    expect(check(from("x@shop.example.com", "shop.example.com"), p)).toMatchObject({ allowed: false, detail: expect.stringContaining("not accepted") });
+    expect(check(from("x@sub.shop.example.co.uk", "sub.shop.example.co.uk"), p).allowed).toBe(false);
+    expect(check(from("x@SHOP.EXAMPLE.CO.UK", "shop.example.co.uk"), p).allowed).toBe(true);
+  });
+
+  it("an exact rule wins over a domain rule, which wins over `*`, and only that rule is tried", () => {
+    const p = rules(
+      { from: "*", require: ["dmarc"] },
+      { from: "*@shop.example.net", require: ["dmarc"] },
+      { from: "orders@shop.example.net", require: ["spf"] },
+    );
+    // The exact rule needs spf; the recorded dmarc pass would satisfy the others, but must not fall through.
+    expect(check(from("orders@shop.example.net", "shop.example.net"), p)).toMatchObject({
+      allowed: false,
+      detail: expect.stringContaining("aligned spf pass"),
+    });
+    expect(check(from("other@shop.example.net", "shop.example.net"), p).allowed).toBe(true);
+    // A failing domain rule does not fall back to `*` either.
+    expect(check(from("x@shop.example.net", "elsewhere.example.org"), p).allowed).toBe(false);
+    expect(check(from("x@unlisted.example.org", "unlisted.example.org"), p).allowed).toBe(true);
+  });
+
+  /** A message whose From header is exactly `header`, recorded as dmarc-aligned with `domain`. */
+  const rawFrom = (header: string, domain: string) =>
+    new TextEncoder().encode(
+      new TextDecoder().decode(from("a@x.example.com", domain)).replace(/^From: .*$/m, `From: ${header}`),
+    );
+
+  describe("under `*`, spoofs are still rejected", () => {
+    const p = { forwardedFrom: [...WILD] };
+    it("arc failure", () => {
+      const cf = "Authentication-Results: mx.cloudflare.net; spf=pass smtp.mailfrom=sender@example.com; arc=fail";
+      expect(check(from("a@x.example.com", "x.example.com", { cloudflare: cf }), p).allowed).toBe(false);
+    });
+    it("spf failure for the envelope sender", () => {
+      const cf = "Authentication-Results: mx.cloudflare.net; spf=fail smtp.mailfrom=sender@example.com; arc=pass";
+      expect(check(from("a@x.example.com", "x.example.com", { cloudflare: cf }), p).allowed).toBe(false);
+    });
+    it("a dmarc pass aligned with a different domain than the From", () => {
+      expect(check(from("a@x.example.com", "other.example.org"), p).allowed).toBe(false);
+    });
+    it("a dkim or spf pass without dmarc", () => {
+      expect(check(from("a@x.example.com", "x.example.com", { recorded: "arc=pass; dkim=pass header.d=x.example.com; spf=pass smtp.mailfrom=a@x.example.com" }), p).allowed).toBe(false);
+    });
+    it("an untrusted forwarder", () => {
+      expect(check(from("a@x.example.com", "x.example.com", { forwarder: "other.example.net" }), p).allowed).toBe(false);
+    });
+    it("a display name hiding another address", () => {
+      const raw = rawFrom('"x <a@x.example.com>" <evil@evil.example.org>', "x.example.com");
+      expect(check(raw, p).allowed).toBe(false);
+      expect(check(rawFrom('"x <a@x.example.com>" <a@x.example.com>', "x.example.com"), p).allowed).toBe(true);
+    });
+    it("a list of mailboxes, or a trailing comment", () => {
+      expect(check(rawFrom("a@x.example.com, b@y.example.org", "y.example.org"), p)).toMatchObject({ detail: expect.stringContaining("not a single address") });
+      expect(check(rawFrom("a@x.example.com (b@y.example.org)", "y.example.org"), p).allowed).toBe(false);
+      expect(check(rawFrom('"A" <a@x.example.com>, "B" <b@y.example.org>', "y.example.org"), p).allowed).toBe(false);
+    });
+  });
+
+  it("accepts a quoted display name containing a comma", () => {
+    expect(check(rawFrom('"Shop, Inc." <orders@x.example.com>', "x.example.com"), { forwardedFrom: [...WILD] }).allowed).toBe(true);
+  });
+});
+
+describe("forwarded rule validation", () => {
+  const parse = (forwarded_from: unknown) => LanePatch.safeParse({ forwarded_from });
+  const ok = (forwarded_from: unknown) => expect(parse(forwarded_from).success).toBe(true);
+  const bad = (forwarded_from: unknown) => expect(parse(forwarded_from).success).toBe(false);
+
+  it("accepts an address, a domain wildcard and `*`, each with dmarc only for the wildcards", () => {
+    ok([{ from: "a@example.com", require: ["spf"] }]);
+    ok([{ from: "*@Example.co.uk", require: ["dmarc"] }]);
+    ok([{ from: "*", require: ["dmarc"] }]);
+    expect(LanePatch.parse({ forwarded_from: [{ from: "*@Example.co.uk" }] }).forwarded_from).toEqual([{ from: "*@example.co.uk", require: ["dmarc"] }]);
+  });
+
+  it("refuses a wildcard that requires anything but dmarc", () => {
+    bad([{ from: "*", require: ["dkim"] }]);
+    bad([{ from: "*", require: ["dmarc", "spf"] }]);
+    bad([{ from: "*@example.co.uk", require: ["spf"] }]);
+    bad([{ from: "*@example.co.uk", require: ["dmarc", "dkim"] }]);
+  });
+
+  it("refuses malformed wildcards, and a public suffix", () => {
+    for (const from of ["*@", "foo*@example.com", "*.example.com", "*@*.example.com", "**", "*@example", "*@co.uk", "*@github.io", "a@b*.example.com"]) {
+      bad([{ from, require: ["dmarc"] }]);
+    }
+  });
+
+  it("refuses duplicate patterns, and more than 10 rules, for both creation and patching", () => {
+    bad([{ from: "*", require: ["dmarc"] }, { from: "*", require: ["dmarc"] }]);
+    bad(Array.from({ length: 11 }, (_, i) => ({ from: `*@d${i}.example.com`, require: ["dmarc"] })));
+    expect(LaneInput.safeParse({ slug: "a", forwarded_from: [{ from: "*", require: ["spf"] }] }).success).toBe(false);
+    expect(LaneInput.safeParse({ slug: "a", forwarded_from: [{ from: "*" }] }).success).toBe(true);
+  });
+
+  it("a lane with a wildcard round-trips", async () => {
+    const db = await freshDb();
+    const lane = await createLane(db, { slug: "receipts", forwarded_from: [{ from: "*", require: ["dmarc"] }] });
+    expect((await getLaneBySlug(db, lane.slug))!.forwardedFrom).toEqual([{ from: "*", require: ["dmarc"] }]);
   });
 });

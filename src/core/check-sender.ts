@@ -1,7 +1,7 @@
 import { findForwarderResults, parseAuthResults, parseTags, type ParsedAuthResults } from "./arc.ts";
 import { isPublicSuffix, isSameOrParent, sameOrganisation } from "./domains.ts";
 import { parseHeaders, type Header } from "./headers.ts";
-import type { ForwardedFromRule } from "./lane-config.ts";
+import { EXACT_ADDRESS, findForwardedRule, type ForwardedFromRule } from "./lane-config.ts";
 
 const CLOUDFLARE_AUTHSERV_ID = "mx.cloudflare.net";
 
@@ -20,6 +20,18 @@ export function normaliseAddress(addr: string | null | undefined): string {
 export function extractAddress(header: string): string {
   const m = header.match(/<([^>]+)>/);
   return m ? m[1]! : header;
+}
+
+/**
+ * The one address in a From header, or null. Accepts `addr` or `Name <addr>` (the name may be a
+ * quoted string containing anything); a list of mailboxes, trailing comments and anything else
+ * is refused rather than guessed at.
+ */
+const SINGLE_MAILBOX = /^\s*(?:(?:"(?:[^"\\]|\\.)*"\s*|[^<>@,"]*)<([^<>\s]+)>|([^<>\s,"]+))\s*$/;
+export function singleFromAddress(header: string): string | null {
+  const m = SINGLE_MAILBOX.exec(header);
+  const address = normaliseAddress(m?.[1] ?? m?.[2]);
+  return EXACT_ADDRESS.test(address) ? address : null;
 }
 
 export interface SenderPolicy {
@@ -134,8 +146,9 @@ function checkForwarded(
 
   const froms = headers.filter((h) => h.name === "from");
   if (froms.length !== 1) return { ok: false, detail: "expected exactly one From header" };
-  const fromAddress = normaliseAddress(extractAddress(froms[0]!.value));
-  const rule = rules.find((r) => r.from === fromAddress);
+  const fromAddress = singleFromAddress(froms[0]!.value);
+  if (!fromAddress) return { ok: false, detail: "From header is not a single address" };
+  const rule = findForwardedRule(rules, fromAddress);
   if (!rule) return { ok: false, detail: "From address not accepted on this lane" };
   const fromDomain = domainOf(fromAddress);
 

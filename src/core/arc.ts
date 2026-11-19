@@ -79,7 +79,13 @@ export function findForwarderResults(headers: Header[], trusted: string[]): Forw
   if (seals.get(top)!.d !== CLOUDFLARE_ARC_DOMAIN) return { ok: false, detail: "top ARC set is not Cloudflare's" };
   const forwarder = seals.get(top - 1)!;
   if (!trusted.includes(forwarder.d)) return { ok: false, detail: "ARC set not sealed by a trusted forwarder" };
-  if (forwarder.cv !== "pass") return { ok: false, detail: "forwarder's ARC set did not validate" };
+  // The first set in a chain has nothing to validate, so RFC 8617 gives it cv=none. That is the
+  // normal shape when the forwarder is the first hop (i=1); Cloudflare's own cv=pass above covers it.
+  if (seals.get(top)!.cv !== "pass") return { ok: false, detail: "Cloudflare's ARC set did not validate" };
+  const firstHop = top - 1 === 1;
+  if (forwarder.cv !== "pass" && !(firstHop && forwarder.cv === "none")) {
+    return { ok: false, detail: "forwarder's ARC set did not validate" };
+  }
 
   const aars = headers.filter((h) => h.name === "arc-authentication-results" && parseTags(h.value).i === String(top - 1));
   if (aars.length !== 1) return { ok: false, detail: "expected exactly one ARC-Authentication-Results for the forwarder" };

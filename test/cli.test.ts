@@ -373,6 +373,18 @@ describe("forwarded rules and diagnostics", () => {
     expect((await cli(["lanes", "update", "a", "--forwarded-from", "not-an-address"])).code).toBe(1);
   });
 
+  it("takes wildcard rules, which may require only dmarc", async () => {
+    await createLane(db, { slug: "w" });
+    expect((await cli(["lanes", "update", "w", "--forwarded-from", "*", "--forwarded-from", "*@Example.co.uk=dmarc"])).code).toBe(0);
+    expect((await getLaneBySlug(db, "w"))!.forwardedFrom).toEqual([
+      { from: "*", require: ["dmarc"] },
+      { from: "*@example.co.uk", require: ["dmarc"] },
+    ]);
+    expect((await cli(["lanes", "update", "w", "--forwarded-from", "*=spf"])).code).toBe(1);
+    expect((await cli(["lanes", "update", "w", "--forwarded-from", "*@co.uk"])).code).toBe(1);
+    expect((await cli(["lanes", "update", "w", "--forwarded-from", "*", "--forwarded-from", "*"])).code).toBe(1);
+  });
+
   it("prints rejection diagnostics only when asked, and always in JSON", async () => {
     const lane = await createLane(db, { slug: "a" });
     await logRejection(db, {

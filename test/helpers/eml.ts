@@ -89,6 +89,10 @@ export interface ArcOptions {
   cloudflare?: string;
   topSeal?: string;
   forwarderCv?: string;
+  /** The forwarder is the first ARC hop (i=1, cv=none) and Cloudflare is i=2, as with a mailbox provider's own rule. */
+  firstHop?: boolean;
+  /** Cloudflare's seal cv; defaults to pass. */
+  topCv?: string;
   /** Authserv-id the forwarder recorded results under. */
   forwarderServer?: string;
   /** Extra header lines, e.g. unsigned hints a forwarder adds. */
@@ -109,11 +113,25 @@ export const FORWARDED_ORIGIN = {
  */
 export function arcLines(o: ArcOptions = {}): string[] {
   const forwarder = o.forwarder ?? "forwarder.example.net";
+  if (o.firstHop) {
+    return [
+      o.cloudflare ??
+        "Authentication-Results: mx.cloudflare.net; dkim=none; dmarc=pass header.from=billing.example.org;" +
+          ` spf=pass smtp.mailfrom=sender@example.com; arc=pass`,
+      `ARC-Seal: i=2; a=rsa-sha256; s=cf; d=${o.topSeal ?? "cloudflare-email.net"}; cv=${o.topCv ?? "pass"}; b=AAAA`,
+      "ARC-Message-Signature: i=2; a=rsa-sha256; d=cloudflare-email.net; s=cf; h=from:to:subject; bh=AAAA; b=AAAA",
+      "ARC-Authentication-Results: i=2; mx.cloudflare.net; arc=pass",
+      `ARC-Seal: i=1; a=rsa-sha256; s=arc1; d=${forwarder}; cv=${o.forwarderCv ?? "none"}; b=BBBB`,
+      `ARC-Message-Signature: i=1; a=rsa-sha256; d=${forwarder}; s=arc1; h=from:to:subject; bh=BBBB; b=BBBB`,
+      `ARC-Authentication-Results: i=1; ${o.forwarderServer ?? `arc.${forwarder}`}; ${o.recorded ?? FORWARDED_ORIGIN.recorded}`,
+      ...(o.extra ?? []),
+    ];
+  }
   return [
     o.cloudflare ??
       "Authentication-Results: mx.cloudflare.net; dkim=none; dmarc=pass header.from=billing.example.org;" +
         ` spf=pass smtp.helo=relay.${forwarder}; spf=pass smtp.mailfrom=sender@example.com; arc=pass`,
-    `ARC-Seal: i=3; a=rsa-sha256; s=cf; d=${o.topSeal ?? "cloudflare-email.net"}; cv=pass; b=AAAA`,
+    `ARC-Seal: i=3; a=rsa-sha256; s=cf; d=${o.topSeal ?? "cloudflare-email.net"}; cv=${o.topCv ?? "pass"}; b=AAAA`,
     "ARC-Message-Signature: i=3; a=rsa-sha256; d=cloudflare-email.net; s=cf; h=from:to:subject; bh=AAAA; b=AAAA",
     "ARC-Authentication-Results: i=3; mx.cloudflare.net; arc=pass",
     `ARC-Seal: i=2; a=rsa-sha256; s=arc1; d=${forwarder}; cv=${o.forwarderCv ?? "pass"}; b=BBBB`,
