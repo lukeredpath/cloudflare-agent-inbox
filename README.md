@@ -12,8 +12,9 @@
 > would be comfortable with an attacker steering. Use it at your own risk.
 
 A Cloudflare Worker that files forwarded emails into **lanes**, which AI agents
-read through a narrow, mostly read-only MCP server. A separate admin CLI manages
-lanes, agent tokens and secrets.
+read through a narrow, mostly read-only MCP server. An admin CLI manages lanes,
+agent tokens and secrets, and an optional web interface behind Cloudflare Access
+covers the day-to-day tasks.
 
 > **Unofficial.** This project is not affiliated with, endorsed by, or
 > sponsored by Cloudflare. It runs on Cloudflare's developer platform and uses
@@ -39,11 +40,11 @@ forwarded mail ─► Email Routing ─► email() handler
 fetch() handler
    MCP host    /mcp/agent    bearer tokens, scoped to granted lanes
    share host  /s/<token>    short-lived download links
+   admin host  (optional)    the admin interface, behind Cloudflare Access
 
 scheduled() ─► retention purge, expired links, old rejections
 
 agent-inbox CLI (your machine) ─► Cloudflare API: D1 and Workers secrets
-   (there is no admin route on the Worker)
 ```
 
 - **Lanes are the unit of policy.** Each has its own address, allowed senders,

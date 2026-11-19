@@ -20,6 +20,7 @@ ids are fine: they mean nothing outside the database.
 | `email` | `outcome` (`accepted`, `rejected`, `error`), `lane` (id, or null), `reason` (for rejections), `path` (`direct` or `forwarded`, for accepted), `files`, `bytes`, `ms`, `authenticated` (for errors) | once per inbound message |
 | `mcp` | `agent` (id), `tool`, `outcome` (`ok`, `refused`, `internal_error`) | every agent tool call |
 | `share` | `outcome` (`served`, `not_found`, `missing_object`), `attachment`, `agent`, `bytes` | every share-link request. Records who used a link and which file, never the link |
+| `admin` | `action` (for changes: for example `lanes.update`), `outcome` (`ok`, `refused`, `internal_error`, `access_denied`, `not_configured`, `no_assets`), `status`, `reason` (for `access_denied`) | each change made through the admin interface, and each request it refused. Never who made it or what it touched |
 | `purge` | `expired_links`, `expired_messages`, `removed_messages`, `removed_rejections`, `failed_steps` | once per hourly run |
 | `purge_step_failed` | `step`, `error` | a purge step failed. The other steps still run, and the run is then failed so Cloudflare shows the cron as errored |
 
@@ -28,6 +29,20 @@ unlisted sender over the rate limit; logged only, never stored): `unknown_addres
 `sender_not_allowed`, `auth_failed`, `lane_paused`, `too_large`,
 `attachment_not_allowed`, `parse_error`. An `error` outcome with `authenticated: true`
 means a verified forward could not be stored; the sender was told to send it again.
+
+## If the admin interface refuses you
+
+An `admin` line with `outcome: access_denied` says why in `reason`:
+
+| `reason` | Meaning |
+| --- | --- |
+| `missing` | the request did not come through Cloudflare Access (no token). Check that the Access application covers the whole admin hostname |
+| `malformed`, `unknown_key`, `bad_signature` | a token that is not from your Access team: a wrong team domain, or a forged token |
+| `bad_claims` | a token for another application, or an expired one. Check that `AGENT_INBOX_ACCESS_AUD` is the audience tag of the application in front of this hostname |
+| `keys_unavailable` | the Worker could not fetch Access's signing keys (the response is a 503). Try again |
+
+`not_configured` means one of the three admin variables is missing from the deployed Worker, and
+`no_assets` means the admin app was not built into the deploy. See [admin.md](admin.md).
 
 ## "My mail did not arrive": a checklist
 

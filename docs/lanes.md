@@ -1,7 +1,8 @@
 # Lane recipes
 
 A lane is a kind of email that needs its own handling. Lanes live in the
-database, created with the CLI; nothing in this repository names any.
+database, created with the CLI or the [admin interface](admin.md); nothing in this
+repository names any. The examples below use the CLI.
 
 ## A text-only lane
 

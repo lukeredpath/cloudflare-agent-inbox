@@ -29,8 +29,9 @@ you ─► forward an email ─► inbox+<token>@mail.example.com ─► Worker
   notifications). Each lane has its own secret address and its own rules.
 - An **agent** (a script, an assistant, a scheduled task) gets a bearer token
   and can read only the lanes you grant it.
-- You manage everything with the `agent-inbox` command-line tool on your own
-  machine. The Worker has no admin endpoint.
+- You manage it with the `agent-inbox` command-line tool on your own machine. The
+  Worker has no admin endpoint unless you turn on the optional
+  [admin interface](admin.md).
 
 ## Before you start
 
@@ -123,6 +124,7 @@ Two ways; **option A is the default** and needs nothing but this clone.
 | `AGENT_INBOX_DEFAULT_ALLOWED_SENDERS` | the address(es) you forward from, comma-separated |
 | `AGENT_INBOX_ALLOWED_DKIM_DOMAINS` | the domain your mail provider signs your own mail with. Use **your own domain**, never a shared mail provider's |
 | `AGENT_INBOX_TRUSTED_ARC_FORWARDERS` | your mailbox provider's domain if you will use its server-side forwarding rules (step 8); otherwise any domain you do not use |
+| `AGENT_INBOX_ADMIN_HOSTNAME`, `AGENT_INBOX_ACCESS_TEAM_DOMAIN`, `AGENT_INBOX_ACCESS_AUD` | optional, all three or none: the [admin interface](admin.md). Leave them out for now |
 
 - [ ] Deploy:
 
@@ -374,6 +376,8 @@ npm run cli -- messages mark-unprocessed <id>   # hand a message back to an agen
 npm run cli -- messages keep <id>               # exempt from retention
 npm run cli -- messages inject-test receipts    # test an agent without real mail
 ```
+
+The [admin interface](admin.md) does the same things in a browser, if you turn it on.
 
 Messages are purged after the lane's retention (90 days by default) by an hourly
 job. Updating is a normal `git pull` and push: Workers Builds redeploys and

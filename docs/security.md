@@ -156,6 +156,10 @@ Things to know:
 - Test after adding the rule: an expected request still reaches the Worker (a 401 for
   an unauthenticated MCP call, a 404 for an unknown link), and anything else gets a 403.
 
+**Admin host (optional).** This hostname is protected by Cloudflare Access instead, and the
+Worker checks the Access token itself, so the rule above does not apply to it. See
+[admin.md](admin.md).
+
 ## Lanes and agents
 
 - `list_messages` requires a lane name and nothing lists lanes, so an agent that shares a
@@ -166,8 +170,9 @@ Things to know:
   outside the agent's grants is "not found".
 - Agent tokens are 256 random bits, stored only as SHA-256 hashes, and revoked
   tokens stop working on the next call.
-- The Worker has no admin endpoint. The CLI uses a scoped Cloudflare API token
-  (D1 Edit and Workers Editor) held by the operator.
+- Unless the optional [admin interface](admin.md) is configured, the Worker has no admin
+  endpoint. The CLI uses a scoped Cloudflare API token (D1 Edit and Workers Editor) held
+  by the operator.
 - The MCP exposes no deletion, no lane management and no file contents. Share
   links are opt-in per lane, last 15 minutes by default (60 at most), are
   served from their own hostname and never appear in logs or CLI output. A link
