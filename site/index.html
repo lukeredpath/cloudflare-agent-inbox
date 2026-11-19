@@ -33,6 +33,13 @@
     --rule: #e2ded0;
     --link-line: #d4a600;
     --code-bg: #faf8f2;
+    --term-bg: #faf8f2;
+    --term-bar: #efece0;
+    --term-line: var(--rule);
+    --term-text: var(--text);
+    --term-dim: var(--secondary);
+    --term-dot: #d4cfbc;
+    --term-prompt: #7a5d00;
     --display: "Besley", Georgia, serif;
     --sans: "Schibsted Grotesk", system-ui, sans-serif;
     --mono: "DM Mono", ui-monospace, Menlo, monospace;
@@ -47,6 +54,13 @@
       --rule: #2a3a50;
       --link-line: var(--lemon);
       --code-bg: #1c2a3e;
+      --term-bg: #101a2a;
+      --term-bar: #1c2a3e;
+      --term-line: #2a3a50;
+      --term-text: #d3dae3;
+      --term-dim: #7d8ba0;
+      --term-dot: #3a4a62;
+      --term-prompt: var(--lemon);
     }
   }
   :root[data-theme="dark"] {
@@ -57,6 +71,13 @@
     --rule: #2a3a50;
     --link-line: var(--lemon);
     --code-bg: #1c2a3e;
+    --term-bg: #101a2a;
+    --term-bar: #1c2a3e;
+    --term-line: #2a3a50;
+    --term-text: #d3dae3;
+    --term-dim: #7d8ba0;
+    --term-dot: #3a4a62;
+    --term-prompt: var(--lemon);
   }
   :root[data-theme="light"] { color-scheme: light; }
   * { box-sizing: border-box; }
@@ -193,15 +214,15 @@
   .shot figcaption { margin: 0; padding: .75rem 1.1rem; background: var(--code-bg); font-size: .9rem; color: var(--secondary); }
   .shot figcaption b { color: var(--text); font-weight: 500; }
 
-  /* A pseudo terminal: real, selectable text. It is dark in both themes, as terminals usually are. */
-  .terminal { margin: 0 0 2rem; border: 1px solid #2a3a50; border-radius: 4px; overflow: hidden; background: #101a2a; color: #d3dae3; }
-  .terminal .bar { display: flex; align-items: center; gap: .4rem; padding: .6rem .85rem; background: #1c2a3e; border-bottom: 1px solid #2a3a50; font: 500 .75rem var(--mono); color: #9eabbd; }
-  .terminal .bar i { width: .65rem; height: .65rem; border-radius: 50%; background: #3a4a62; }
+  /* A pseudo terminal: real, selectable text, in the page's own theme. */
+  .terminal { margin: 0 0 2rem; border: 1px solid var(--term-line); border-radius: 4px; overflow: hidden; background: var(--term-bg); color: var(--term-text); }
+  .terminal .bar { display: flex; align-items: center; gap: .4rem; padding: .6rem .85rem; background: var(--term-bar); border-bottom: 1px solid var(--term-line); font: 500 .75rem var(--mono); color: var(--secondary); }
+  .terminal .bar i { width: .65rem; height: .65rem; border-radius: 50%; background: var(--term-dot); }
   .terminal .bar span { margin-left: .5rem; }
   .terminal pre { margin: 0; padding: 1rem 1.15rem 1.15rem; border-radius: 0; background: transparent; color: inherit; font: .75rem/1.55 var(--mono); overflow-x: auto; }
-  .terminal .p { color: var(--lemon); user-select: none; }
-  .terminal .d { color: #7d8ba0; }
-  .terminal .cur { display: inline-block; width: .55em; height: 1.05em; vertical-align: -.2em; background: #d3dae3; opacity: .75; }
+  .terminal .p { color: var(--term-prompt); user-select: none; }
+  .terminal .d { color: var(--term-dim); }
+  .terminal .cur { display: inline-block; width: .55em; height: 1.05em; vertical-align: -.2em; background: var(--term-text); opacity: .75; }
   @media (prefers-reduced-motion: no-preference) { .terminal .cur { animation: blink 1.1s steps(1) infinite; } }
   @keyframes blink { 50% { opacity: 0; } }
 
