@@ -19,6 +19,17 @@ export interface Env {
    * nothing is limited.
    */
   MAIL_LIMITER?: RateLimit;
+  /**
+   * The admin interface is optional. It is served on ADMIN_HOSTNAME only when ACCESS_TEAM_DOMAIN and
+   * ACCESS_AUD are also set (Cloudflare Access application); otherwise that host answers 503.
+   */
+  ADMIN_HOSTNAME?: string;
+  /** The Access team's hostname, for example `team.cloudflareaccess.com`. */
+  ACCESS_TEAM_DOMAIN?: string;
+  /** The Access application's audience tag. */
+  ACCESS_AUD?: string;
+  /** The built admin app (Workers Static Assets). Only reached through the Access check. */
+  ASSETS?: Fetcher;
   /** Per-bucket cap on logged rejections per rolling day (default 50). */
   MAX_REJECTED_PER_DAY?: string;
   /** Secrets that lane transforms may reference by name. */
