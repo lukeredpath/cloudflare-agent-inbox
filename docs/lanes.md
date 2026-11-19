@@ -56,7 +56,8 @@ npm run cli -- lanes create statements \
   domain (not its subdomains), and `--forwarded-from '*'` accepts any From
   address. **Quote the `*`**, or the shell expands it. A wildcard vouches for
   senders you did not list, so it may require nothing but `dmarc`: anything
-  else is refused, as is a public suffix such as `*@co.uk`. With several rules,
+  else is refused, as is a public suffix such as `*@co.uk` (the built-in list is a
+  small approximation of the real one, so avoid wildcards on any shared suffix). With several rules,
   the most specific one for the From address is used and only that one: an
   exact address, then `*@domain`, then `*`. A pattern may appear once per lane.
 - The recorded DMARC verdict must be aligned with the actual From domain.

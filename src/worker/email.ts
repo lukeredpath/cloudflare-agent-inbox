@@ -1,6 +1,7 @@
 import {
   checkSender,
   extractAddress,
+  singleFromAddress,
   normaliseAddress,
   parseList,
 } from "../core/check-sender.ts";
@@ -52,7 +53,7 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
   const db = d1Db(env.DB);
   const cap = positiveInt(env.MAX_REJECTED_PER_DAY, DEFAULT_MAX_REJECTED_PER_DAY);
   const envelopeFrom = normaliseAddress(message.from);
-  const headerFrom = normaliseAddress(extractAddress(message.headers.get("from") ?? "")) || null;
+  const headerFrom = (singleFromAddress(message.headers.get("from") ?? "") ?? normaliseAddress(extractAddress(message.headers.get("from") ?? ""))) || null;
   const base = { recipientHint: recipientHint(message.to), envelopeFrom, headerFrom };
   let authenticated = false;
   let laneId: string | null = null;

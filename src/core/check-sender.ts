@@ -1,7 +1,7 @@
 import { findForwarderResults, parseAuthResults, parseTags, type ParsedAuthResults } from "./arc.ts";
 import { isPublicSuffix, isSameOrParent, sameOrganisation } from "./domains.ts";
 import { parseHeaders, type Header } from "./headers.ts";
-import { EXACT_ADDRESS, findForwardedRule, type ForwardedFromRule } from "./lane-config.ts";
+import { EXACT_ADDRESS, findForwardedRule, fromKind, type ForwardedFromRule } from "./lane-config.ts";
 
 const CLOUDFLARE_AUTHSERV_ID = "mx.cloudflare.net";
 
@@ -150,9 +150,11 @@ function checkForwarded(
   if (!fromAddress) return { ok: false, detail: "From header is not a single address" };
   const rule = findForwardedRule(rules, fromAddress);
   if (!rule) return { ok: false, detail: "From address not accepted on this lane" };
+  // Wildcards vouch for senders nobody listed, so whatever the stored rule says, only dmarc counts.
+  const required = fromKind(rule.from) === "exact" ? rule.require : (["dmarc"] as const);
   const fromDomain = domainOf(fromAddress);
 
-  for (const verdict of rule.require) {
+  for (const verdict of required) {
     for (const r of lookup.results.results.filter((x) => x.method === verdict && x.result === "pass")) {
       if (verdict === "dmarc" && r.props["header.from"]?.toLowerCase() === fromDomain) {
         return { ok: true, summary: `arc via ${lookup.forwarder}: dmarc=pass header.from=${fromDomain}` };
@@ -165,7 +167,7 @@ function checkForwarded(
       }
     }
   }
-  return { ok: false, detail: `forwarder did not record an aligned ${rule.require.join(" or ")} pass` };
+  return { ok: false, detail: `forwarder did not record an aligned ${required.join(" or ")} pass` };
 }
 
 /**

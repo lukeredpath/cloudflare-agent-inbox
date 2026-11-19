@@ -22,7 +22,12 @@ changes. Each one is listed here.
 ### Changed
 
 - The From header must contain exactly one address on the forwarded path. A list of
-  mailboxes, a trailing comment or a display name hiding another address is refused.
+  mailboxes, a trailing comment, or an unquoted display name containing `,` or `@` is
+  refused, and a quoted display name that contains an address is read as the real
+  address after it. The sender stored with a message is that same address.
+- Forwarded rules saved by an earlier version are checked again when read. One that no
+  longer validates, or repeats an earlier pattern, is ignored. A wildcard rule is only
+  ever matched on `dmarc`.
 
 ## 0.1.0 (2026-11-17)
 

@@ -1,7 +1,7 @@
 import type { Db } from "./db.ts";
 import {
   AttachmentPolicy,
-  type ForwardedFromRule,
+  ForwardedFromRule,
   LaneInput,
   LanePatch,
   type AttachmentPolicy as AttachmentPolicyType,
@@ -10,6 +10,24 @@ import { generateAddressToken } from "./tokens.ts";
 import { ulid } from "./ulid.ts";
 
 export class CoreError extends Error {}
+
+/**
+ * Rules stored under an older, looser schema are checked again on read: one that no longer
+ * validates, or repeats an earlier pattern, is dropped, so it can only ever match less.
+ */
+function storedRules(json: string | null): ForwardedFromRule[] {
+  const raw: unknown = json ? JSON.parse(json) : [];
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const rules: ForwardedFromRule[] = [];
+  for (const item of raw) {
+    const parsed = ForwardedFromRule.safeParse(item);
+    if (!parsed.success || seen.has(parsed.data.from)) continue;
+    seen.add(parsed.data.from);
+    rules.push(parsed.data);
+  }
+  return rules;
+}
 
 export interface Lane {
   id: string;
@@ -56,7 +74,7 @@ function fromRow(row: LaneRow): Lane {
     status: row.status === "paused" ? "paused" : "active",
     allowedSenders: row.allowed_senders ? (JSON.parse(row.allowed_senders) as string[]) : null,
     attachmentPolicy: AttachmentPolicy.parse(JSON.parse(row.attachment_policy)),
-    forwardedFrom: row.forwarded_from ? (JSON.parse(row.forwarded_from) as ForwardedFromRule[]) : [],
+    forwardedFrom: storedRules(row.forwarded_from),
     shareable: row.shareable === 1,
     maxBytes: row.max_bytes,
     maxTextChars: row.max_text_chars,

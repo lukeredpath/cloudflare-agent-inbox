@@ -433,7 +433,7 @@ describe("wildcard forwarded_from rules", () => {
     });
     it("a list of mailboxes, or a trailing comment", () => {
       expect(check(rawFrom("a@x.example.com, b@y.example.org", "y.example.org"), p)).toMatchObject({ detail: expect.stringContaining("not a single address") });
-      expect(check(rawFrom("a@x.example.com (b@y.example.org)", "y.example.org"), p).allowed).toBe(false);
+      expect(check(rawFrom("a@x.example.com (b@y.example.org)", "x.example.com"), p)).toMatchObject({ detail: expect.stringContaining("not a single address") });
       expect(check(rawFrom('"A" <a@x.example.com>, "B" <b@y.example.org>', "y.example.org"), p).allowed).toBe(false);
     });
   });
@@ -479,5 +479,41 @@ describe("forwarded rule validation", () => {
     const db = await freshDb();
     const lane = await createLane(db, { slug: "receipts", forwarded_from: [{ from: "*", require: ["dmarc"] }] });
     expect((await getLaneBySlug(db, lane.slug))!.forwardedFrom).toEqual([{ from: "*", require: ["dmarc"] }]);
+  });
+});
+
+describe("rules stored by an earlier version", () => {
+  const stored = async (rules: unknown) => {
+    const db = await freshDb();
+    const lane = await createLane(db, { slug: "old" });
+    await db.run("UPDATE lanes SET forwarded_from = ? WHERE id = ?", [JSON.stringify(rules), lane.id]);
+    return (await getLaneBySlug(db, "old"))!;
+  };
+
+  it("are dropped when they no longer validate, and duplicates keep the first", async () => {
+    const lane = await stored([
+      { from: "*@example.com", require: ["spf"] },
+      { from: "foo*@example.com", require: ["dmarc"] },
+      { from: "a@example.com", require: ["spf"] },
+      { from: "a@example.com", require: ["dkim"] },
+      "garbage",
+    ]);
+    expect(lane.forwardedFrom).toEqual([{ from: "a@example.com", require: ["spf"] }]);
+  });
+
+  it("a wildcard is only matched on dmarc even if the stored rule says otherwise", () => {
+    const loose = { from: "*", require: ["spf"] } as unknown as { from: string; require: ("dmarc" | "dkim" | "spf")[] };
+    const raw = forwarded({ firstHop: true, recorded: "arc=pass; spf=pass smtp.mailfrom=bounce@billing.example.org" });
+    expect(check(raw, { forwardedFrom: [loose] })).toMatchObject({ allowed: false, detail: expect.stringContaining("aligned dmarc pass") });
+  });
+});
+
+describe("findForwarderResults at the first hop", () => {
+  const lookup = (arc: ArcOptions, trusted = ["forwarder.example.net"]) =>
+    findForwarderResults(parseHeaders(buildEml({ auth: arcLines({ firstHop: true, ...arc }) })), trusted);
+
+  it("accepts a trusted i=1 seal with cv=none, and refuses an untrusted one", () => {
+    expect(lookup({})).toMatchObject({ ok: true, forwarder: "forwarder.example.net" });
+    expect(lookup({ forwarder: "other.example.net" })).toMatchObject({ ok: false, detail: expect.stringContaining("trusted forwarder") });
   });
 });
