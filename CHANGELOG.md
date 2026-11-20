@@ -3,7 +3,7 @@
 Releases are 0.x while the project is experimental: any release can contain breaking
 changes. Each one is listed here.
 
-## Unreleased
+## 0.3.0 (2026-11-20)
 
 ### Added
 
