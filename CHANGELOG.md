@@ -31,6 +31,13 @@ changes. Each one is listed here.
   includes an `assets` section. The build refuses an admin hostname that repeats the MCP,
   share or mail hostname, and an MCP hostname that repeats the share one. The mail hostname
   may still be the same as the MCP or share hostname.
+- The project page puts Get started before the admin and CLI section, and its steps before the
+  commands. The experimental note sits above the buttons, the title is larger, and the hero
+  diagram shows mail running through a lane to an agent, with the lanes highlighted once on load
+  (not with reduced motion). The page stacks below 960px, the terminal has no window dots,
+  code blocks have borders, and there is Open Graph metadata.
+- The admin screenshots are cropped to the page content so they read larger. `npm run
+  screenshots` takes a crop for each picture (`docs/admin.md`).
 
 ### Fixed
 
