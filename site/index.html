@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>cloudflare-agent-inbox</title>
 <meta name="description" content="A Cloudflare Worker that files forwarded emails into lanes, read by AI agents through a narrow MCP server.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="cloudflare-agent-inbox">
+<meta property="og:description" content="A Cloudflare Worker that files forwarded emails into lanes, read by AI agents through a narrow MCP server.">
+<meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#F2F0E6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#152031" media="(prefers-color-scheme: dark)">
 <script>
@@ -38,8 +42,7 @@
     --term-line: var(--rule);
     --term-text: var(--text);
     --term-dim: var(--secondary);
-    --term-dot: #d4cfbc;
-    --term-prompt: #7a5d00;
+      --term-prompt: #7a5d00;
     --display: "Besley", Georgia, serif;
     --sans: "Schibsted Grotesk", system-ui, sans-serif;
     --mono: "DM Mono", ui-monospace, Menlo, monospace;
@@ -59,8 +62,7 @@
       --term-line: #2a3a50;
       --term-text: #d3dae3;
       --term-dim: #7d8ba0;
-      --term-dot: #3a4a62;
-      --term-prompt: var(--lemon);
+        --term-prompt: var(--lemon);
     }
   }
   :root[data-theme="dark"] {
@@ -76,7 +78,6 @@
     --term-line: #2a3a50;
     --term-text: #d3dae3;
     --term-dim: #7d8ba0;
-    --term-dot: #3a4a62;
     --term-prompt: var(--lemon);
   }
   :root[data-theme="light"] { color-scheme: light; }
@@ -111,7 +112,7 @@
 
   /* hero */
   .hero { padding: 3.5rem 0 4rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 3.5rem; align-items: center; }
-  h1 { font: 800 clamp(1.75rem, 1.3rem + 1.7vw, 2.5rem)/1.1 var(--display); letter-spacing: -.02em; margin: 0 0 1.25rem; }
+  h1 { font: 800 clamp(2rem, 1.2rem + 2.9vw, 3.4rem)/1.05 var(--display); letter-spacing: -.025em; margin: 0 0 1.25rem; }
   .lede { font-size: 1.2rem; color: var(--secondary); margin-bottom: 1.75rem; }
   .lede b { color: var(--text); font-weight: 500; }
   .buttons { display: flex; flex-wrap: wrap; gap: .7rem; }
@@ -123,6 +124,9 @@
   .btn.primary { background: var(--lemon); border-color: var(--lemon); color: #2a1f14; font-weight: 800; }
   .btn.primary:hover { background: var(--lemon); filter: brightness(.95); }
   .small { font-size: .85rem; color: var(--secondary); margin: 1.4rem 0 0; }
+  /* The one caveat to read before the buttons: a highlighter bar down the side. */
+  .note { margin: 0 0 1.5rem; padding: .15rem 0 .15rem 1rem; border-left: 4px solid var(--lemon); font-size: .95rem; }
+  .note b { font-weight: 800; }
 
   /* lane diagram: mail goes in on the left, through a lane, to the agent that was granted it */
   .diagram { --col-from: 6rem; --col-lane: 6.25rem; --col-to: 6.75rem; font: .8125rem/1.3 var(--mono); border: 1px solid var(--rule); background: var(--code-bg); border-radius: 4px; padding: 1.5rem 1.4rem; }
@@ -173,7 +177,7 @@
 
   pre {
     margin: 0 0 1.75rem; padding: 1.1rem 1.25rem; overflow-x: auto;
-    background: var(--code-bg); border-radius: 4px;
+    background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px;
     font: .875rem/1.65 var(--mono);
   }
   pre .c { color: var(--secondary); }
@@ -192,13 +196,8 @@
   .arch .tier.hot b { background: var(--lemon); color: #2a1f14; padding: .15rem .4rem; }
   .arch .tier span { color: var(--secondary); font-size: .95rem; }
 
-  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
-  td { padding: .7rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  tr:first-child td { border-top: 1px solid var(--rule); }
-  td:first-child { width: 12rem; color: var(--secondary); }
-
   footer { border-top: 1px solid var(--rule); padding: 1.75rem 0 2.75rem; font-size: .85rem; color: var(--secondary); }
-  footer p { margin: 0 0 .4rem; }
+  footer p { margin: 0 0 .4rem; max-width: 46rem; }
 
   /* System, Light or Dark. Hidden until the script runs, so without
      JavaScript the page simply follows the system setting. */
@@ -235,10 +234,8 @@
 
   /* A pseudo terminal: real, selectable text, in the page's own theme. */
   .terminal { margin: 0 0 2rem; border: 1px solid var(--term-line); border-radius: 4px; overflow: hidden; background: var(--term-bg); color: var(--term-text); }
-  .terminal .bar { display: flex; align-items: center; gap: .4rem; padding: .6rem .85rem; background: var(--term-bar); border-bottom: 1px solid var(--term-line); font: 500 .75rem var(--mono); color: var(--secondary); }
-  .terminal .bar i { width: .65rem; height: .65rem; border-radius: 50%; background: var(--term-dot); }
-  .terminal .bar span { margin-left: .5rem; }
-  .terminal pre { margin: 0; padding: 1rem 1.15rem 1.15rem; border-radius: 0; background: transparent; color: inherit; font: .75rem/1.55 var(--mono); overflow-x: auto; }
+  .terminal .bar { padding: .6rem 1.15rem; background: var(--term-bar); border-bottom: 1px solid var(--term-line); font: 500 .75rem var(--mono); color: var(--secondary); }
+  .terminal pre { margin: 0; padding: 1rem 1.15rem 1.15rem; border: 0; border-radius: 0; background: transparent; color: inherit; font: .75rem/1.55 var(--mono); overflow-x: auto; }
   .terminal .p { color: var(--term-prompt); user-select: none; }
   .terminal .d { color: var(--term-dim); }
   .terminal .cur { display: inline-block; width: .55em; height: 1.05em; vertical-align: -.2em; background: var(--term-text); opacity: .75; }
@@ -265,10 +262,9 @@
   <div class="wrap">
     <a class="brand" href="#">cloudflare-agent-inbox</a>
     <div class="links">
-      <a href="#manage">Managing it</a>
       <a href="#start">Get started</a>
+      <a href="#manage">Admin and CLI</a>
       <a href="#architecture">Architecture</a>
-      <a href="#licence">Licence</a>
       <a href="https://github.com/__REPO__">GitHub</a>
     </div>
   </div>
@@ -283,13 +279,12 @@
         can read only the lanes it has been granted, through a small MCP server, so
         it can see your receipts and invoices without getting at the rest of your mail.
       </p>
+      <p class="note"><b>Experimental.</b> It was built for personal use and is only lightly tested. Read the <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a> before pointing an agent at real mail.</p>
       <div class="buttons">
         <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Setup guide</a>
-        <a class="btn" href="https://github.com/__REPO__/blob/main/docs/agent-setup.md">Agent-guided setup</a>
         <a class="btn" href="https://github.com/__REPO__">GitHub</a>
       </div>
       <p class="small">Unofficial. Not affiliated with, endorsed by, or sponsored by Cloudflare.</p>
-      <p class="small" style="margin-top:.5rem"><b style="font-weight:600;color:var(--text)">Experimental.</b> It was built for personal use and is only lightly tested. Read the <a href="https://github.com/__REPO__/blob/main/docs/security.md">threat model</a> before pointing an agent at real mail.</p>
     </div>
 
     <div class="diagram" role="img" aria-label="Example: receipts and invoices go to lanes granted to a finance agent, alerts go to a lane granted to an ops agent, and mail sent to an unknown address is dropped.">
@@ -324,14 +319,47 @@
   </div>
 </section>
 
+<section id="start">
+  <div class="wrap">
+    <div class="label">Get started</div>
+    <div>
+      <h2>Getting a first lane going.</h2>
+      <p class="intro">Four steps to an agent reading its first message.</p>
+      <ol class="steps">
+        <li><span><b>Deploy the Worker</b> from a plain clone with <code>npm run deploy</code>.</span></li>
+        <li><span><b>Create a lane.</b> The CLI prints its address; point a mail rule in your mailbox at it.</span></li>
+        <li><span><b>Create an agent token</b> and grant it the lanes it should see. It's shown once, in a terminal only.</span></li>
+        <li><span><b>Connect your agent</b> to the MCP endpoint with that bearer token.</span></li>
+      </ol>
+      <p>Steps 2 and 3, at a terminal:</p>
+<pre><span class="c"># point the CLI at your account</span>
+<span class="p">$</span> export AGENT_INBOX_CLI_API_TOKEN=...
+<span class="p">$</span> export CLOUDFLARE_ACCOUNT_ID=...
+<span class="p">$</span> export AGENT_INBOX_WORKER_NAME=...
+<span class="p">$</span> export AGENT_INBOX_MAIL_HOSTNAME=mail.example.com
+
+<span class="c"># create a lane, then give an agent access to it</span>
+<span class="p">$</span> npm run cli -- lanes create receipts --description "Shop receipts"
+<span class="p">$</span> npm run cli -- agents create my-agent
+<span class="p">$</span> npm run cli -- agents grant my-agent receipts
+<span class="p">$</span> npm run cli -- messages inject-test receipts --text "Total 3.50 GBP"</pre>
+      <p>The full guide covers DNS, Email Routing and deploy tokens. There's also a prompt you can give an agent to do the mechanical parts, but it hasn't been run end to end yet, so treat a first run as a trial.</p>
+      <div class="buttons">
+        <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Full setup guide</a>
+        <a class="btn" href="https://github.com/__REPO__/blob/main/docs/agent-setup.md">Agent-guided setup</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="manage" class="wide">
   <div class="wrap">
-    <div class="label">Managing it</div>
+    <div class="label">Admin and CLI</div>
     <div>
       <h2>In a browser or at a terminal.</h2>
       <p class="intro">
-        The command-line tool does everything. An optional admin interface does the
-        day-to-day tasks in a browser, on its own hostname behind Cloudflare Access.
+        The command-line tool does everything. The optional admin interface does the
+        day-to-day tasks in a browser.
       </p>
 
       <figure class="shot">
@@ -347,8 +375,9 @@
       </figure>
 
       <p>
-        Sign-in is Cloudflare Access, and the Worker checks the Access token on every request, so a
-        misconfigured Access application does not leave it open. It is off unless configured.
+        The admin interface has its own hostname and signs you in with Cloudflare Access. The Worker
+        checks the Access token on every request, so a misconfigured Access application does not
+        leave it open. It is off unless configured.
       </p>
       <div class="buttons">
         <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/admin.md">Admin interface guide</a>
@@ -360,8 +389,8 @@
            (the command functions in src/cli/commands.ts, run over an in-memory copy of the seed).
            It is plain text: refresh it by hand if the CLI's output changes. -->
       <figure class="terminal">
-        <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>agent-inbox</span></div>
-<pre><span class="p">$</span> npm run cli -- lanes list
+        <div class="bar" aria-hidden="true">agent-inbox</div>
+<pre tabindex="0" role="region" aria-label="Example terminal output"><span class="p">$</span> npm run cli -- lanes list
 <span class="d">LANE             STATUS  MESSAGES  UNPROCESSED  LAST RECEIVED             ADDRESS</span>
 <span class="d">---------------  ------  --------  -----------  ------------------------  -------------------------------------------------</span>
 alerts           active  69        2            2026-11-19T23:15:16.068Z  inbox+x5db7ys3gq2nwm4zc6hta5k2rp@mail.example.com
@@ -398,44 +427,12 @@ Active share links: 0
   </div>
 </section>
 
-<section id="start">
-  <div class="wrap">
-    <div class="label">Get started</div>
-    <div>
-      <h2>Getting a first lane going.</h2>
-      <p class="intro">Once the Worker is deployed and Email Routing points at it, the admin CLI does the rest.</p>
-<pre><span class="c"># point the CLI at your account</span>
-<span class="p">$</span> export AGENT_INBOX_CLI_API_TOKEN=...
-<span class="p">$</span> export CLOUDFLARE_ACCOUNT_ID=...
-<span class="p">$</span> export AGENT_INBOX_WORKER_NAME=...
-<span class="p">$</span> export AGENT_INBOX_MAIL_HOSTNAME=mail.example.com
-
-<span class="c"># create a lane, then give an agent access to it</span>
-<span class="p">$</span> npm run cli -- lanes create receipts --description "Shop receipts"
-<span class="p">$</span> npm run cli -- agents create my-agent
-<span class="p">$</span> npm run cli -- agents grant my-agent receipts
-<span class="p">$</span> npm run cli -- messages inject-test receipts --text "Total 3.50 GBP"</pre>
-      <ol class="steps">
-        <li><span><b>Deploy the Worker</b> from a plain clone with <code>npm run deploy</code>.</span></li>
-        <li><span><b>Create a lane.</b> The CLI prints its address; point a mail rule in your mailbox at it.</span></li>
-        <li><span><b>Create an agent token</b> and grant it the lanes it should see. It's shown once, in a terminal only.</span></li>
-        <li><span><b>Connect your agent</b> to the MCP endpoint with that bearer token.</span></li>
-      </ol>
-      <p>The full guide covers DNS, Email Routing and deploy tokens. There's also a prompt you can give an agent to do the mechanical parts, but it hasn't been run end to end yet, so treat a first run as a trial.</p>
-      <div class="buttons">
-        <a class="btn primary" href="https://github.com/__REPO__/blob/main/docs/getting-started.md">Full setup guide</a>
-        <a class="btn" href="https://github.com/__REPO__/blob/main/docs/agent-setup.md">Agent-guided setup</a>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section id="architecture">
   <div class="wrap">
     <div class="label">Architecture</div>
     <div>
       <h2>How it's put together.</h2>
-      <p class="intro">You can manage everything from your own machine with the CLI, which talks to the Cloudflare API. An optional admin interface, on its own hostname behind Cloudflare Access, does the same day-to-day tasks in a browser.</p>
+      <p class="intro">Everything can be managed from your own machine with the CLI, which talks to the Cloudflare API.</p>
       <div class="arch">
         <div class="tier"><b>Email Routing</b><span>Your forward arrives at <code>inbox+&lt;token&gt;@mail.example.com</code>. The token is 160 random bits.</span></div>
         <div class="tier hot"><b>Worker: email()</b><span>Finds the lane from the token, then checks the sender and authentication, the lane's paused state, and its size and attachment policy. It converts the message to clean text and runs any transforms the lane has, such as unzipping. Anything that fails is dropped silently, except a verified forward to a paused lane, which bounces.</span></div>
@@ -456,27 +453,9 @@ Active share links: 0
   </div>
 </section>
 
-<section id="licence">
-  <div class="wrap">
-    <div class="label">Licence</div>
-    <div>
-      <h2>MIT licensed.</h2>
-      <p class="intro">
-        You can use, copy, modify and distribute it, including commercially, as long as
-        the copyright and licence notice stay with it. It comes as is, without warranty.
-      </p>
-      <table>
-        <tr><td>Licence</td><td><a href="https://github.com/__REPO__/blob/main/LICENSE">MIT</a></td></tr>
-        <tr><td>Copyright</td><td>2026 Luke Redpath</td></tr>
-        <tr><td>Security issues</td><td><a href="https://github.com/__REPO__/blob/main/SECURITY.md">SECURITY.md</a></td></tr>
-        <tr><td>Source and issues</td><td><a href="https://github.com/__REPO__">github.com/__REPO__</a></td></tr>
-      </table>
-    </div>
-  </div>
-</section>
-
 <footer>
   <div class="wrap">
+    <p>Released under the <a href="https://github.com/__REPO__/blob/main/LICENSE">MIT licence</a>, copyright 2026 Luke Redpath: use, copy, modify and distribute it, commercially too, as long as the licence notice stays with it. It comes as is, without warranty. Report security issues as described in <a href="https://github.com/__REPO__/blob/main/SECURITY.md">SECURITY.md</a>.</p>
     <p>cloudflare-agent-inbox is an independent project. Cloudflare and Cloudflare Workers are trademarks of Cloudflare, Inc., used here descriptively.</p>
     <p>Examples use <code>example.com</code> and made-up addresses only. Fonts (Besley, Schibsted Grotesk, DM Mono) are used under the SIL Open Font License.</p>
     <div class="foot-row">
