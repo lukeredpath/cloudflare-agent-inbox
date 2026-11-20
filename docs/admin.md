@@ -12,14 +12,15 @@ configure it**. Nothing changes for a deployment that does not.
   and bulk paste), pause and resume, grant and ungrant agents, rotate the address, delete.
   The address is masked until you reveal it, and active share links are listed without the
   links themselves.
-- **Messages:** filter by lane and status, search the loaded list, and open one to see its
-  envelope, attachments (with download) and transform errors. Mark it unprocessed, keep it
-  or delete it.
+- **Messages:** filter by lane and status, search the loaded list, and open one (the subject
+  is the link, with the sender beneath it) to see its envelope, attachments (with download)
+  and transform errors. Unprocessed messages are marked, so they stand out; processed ones
+  are plain text. Mark a message unprocessed, keep it or delete it.
 - **Agents:** create (the token is shown once, kept only in memory until you dismiss it),
   and revoke.
 - **Rejections:** the log, with an optional diagnostics view.
-- A command palette (`⌘K`), keyboard shortcuts (`?`), light and dark themes, and a layout
-  that works on a phone.
+- A command palette (`⌘K`), keyboard shortcuts (`?`), a skip link, light and dark themes,
+  and a layout that works on a phone, where messages and lanes become cards.
 
 `secrets set` and `messages inject-test` stay in the CLI: setting a Worker secret needs a
 Cloudflare API token that the Worker should not hold.
