@@ -36,6 +36,14 @@ changes. Each one is listed here.
   diagram shows mail running through a lane to an agent, with the lanes highlighted once on load
   (not with reduced motion). The page stacks below 960px, the terminal has no window dots,
   code blocks have borders, and there is Open Graph metadata.
+- The admin message list is easier to scan: the subject is the link, with the sender beneath it, and
+  only unprocessed messages are marked (in the website's lemon: solid in light, a faint wash with a
+  hairline in dark). The same mark is on the unprocessed counts in the menu and the lane table, a
+  processed message is plain text, and a paused lane is a neutral icon in the menu.
+- On a phone, admin messages and lanes are cards (title, then one line of detail) instead of a label
+  for every field. Each admin screen sets its own tab title, an unknown address no longer marks
+  Overview as current, there is a skip link, the page title is larger, status pills are centred on
+  title text, and the new-lane name field has an example.
 - The admin screenshots are cropped to the page content so they read larger. `npm run
   screenshots` takes a crop for each picture (`docs/admin.md`).
 
