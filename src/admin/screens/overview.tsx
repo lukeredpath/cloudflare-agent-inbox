@@ -110,7 +110,7 @@ export function Overview() {
               <h2 id="lanes-h">Lanes</h2>
             </div>
             <div class="table-wrap">
-              <table class="table stack-sm">
+              <table class="table cards">
                 <thead>
                   <tr>
                     <th>Lane</th>
@@ -124,25 +124,25 @@ export function Overview() {
                 <tbody>
                   {data.lanes.map((l) => (
                     <tr key={l.slug} class="clickable" onClick={rowLink(to.lane(l.slug))}>
-                      <td data-l="Lane">
+                      <td class="t1 full">
                         <a href={to.lane(l.slug)} class="mono">
                           {l.slug}
                         </a>
                         {l.description && <div class="muted small">{l.description}</div>}
                       </td>
-                      <td data-l="Status">
+                      <td>
                         <LaneStatusPill status={l.status} />
                       </td>
-                      <td data-l="Messages" class="num">
+                      <td class="num">
                         {l.message_count}
+                        <span class="phone-only"> messages</span>
                       </td>
-                      <td data-l="Unprocessed" class="num">
-                        {l.unprocessed_count ? <strong>{l.unprocessed_count}</strong> : <span class="muted">0</span>}
+                      <td class={`num${l.unprocessed_count ? "" : " ph-hide"}`}>
+                        {l.unprocessed_count ? <span class="mark">{l.unprocessed_count}</span> : <span class="muted">0</span>}
+                        <span class="phone-only"> unprocessed</span>
                       </td>
-                      <td data-l="Agents" class="num">
-                        {l.agent_count}
-                      </td>
-                      <td data-l="Last received" class="nowrap" title={l.last_received_at ? formatFull(l.last_received_at) : undefined}>
+                      <td class="num ph-hide">{l.agent_count}</td>
+                      <td class="nowrap end" title={l.last_received_at ? formatFull(l.last_received_at) : undefined}>
                         {timeAgo(l.last_received_at)}
                       </td>
                     </tr>

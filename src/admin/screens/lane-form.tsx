@@ -163,6 +163,7 @@ function LaneFormBody({ isNew, initial, lane }: { isNew: boolean; initial: LaneF
                 <input
                   class="input mono"
                   id="i-slug"
+                  placeholder="receipts"
                   value={form.slug}
                   autocomplete="off"
                   spellcheck={false}

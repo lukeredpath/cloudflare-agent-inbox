@@ -7,6 +7,7 @@ import { Modal } from "./dialogs.tsx";
 import { Icon, type IconName } from "./icons.tsx";
 import { OverviewContext } from "./overview-context.ts";
 import { navigate, to, type Route } from "./router.ts";
+import { APP_TITLE, currentScreen, routeTitle } from "./route-model.ts";
 import { useStore } from "./store.ts";
 import { applyTheme, loadTheme, type Theme } from "./theme.ts";
 import { requestNewAgent } from "./screens/new-agent.ts";
@@ -17,19 +18,6 @@ const SCREENS: { id: string; label: string; icon: IconName; href: string }[] = [
   { id: "agents", label: "Agents", icon: "agent", href: to.agents() },
   { id: "rejections", label: "Rejections", icon: "ban", href: to.rejections() },
 ];
-
-function currentScreen(route: Route): string {
-  switch (route.name) {
-    case "message":
-    case "messages":
-      return "messages";
-    case "agents":
-    case "rejections":
-      return route.name;
-    default:
-      return "overview";
-  }
-}
 
 function SessionBanner() {
   const expired = useStore(sessionExpired);
@@ -80,7 +68,7 @@ function Nav({ route, open }: { route: Route; open: boolean }) {
           <Icon name={s.icon} />
           {s.label}
           {s.id === "messages" && overview && (
-            <span class="count" aria-label={`${unprocessed} unprocessed`}>
+            <span class={`count${unprocessed > 0 ? " mark" : ""}`} aria-label={`${unprocessed} unprocessed`}>
               {unprocessed}
             </span>
           )}
@@ -90,8 +78,16 @@ function Nav({ route, open }: { route: Route; open: boolean }) {
       {overview?.lanes.map((l) => (
         <a key={l.slug} class="nav-link lane-link" href={to.lane(l.slug)} aria-current={lane === l.slug ? "page" : undefined}>
           <Icon name="lane" />
-          <span class="mono">{l.slug}</span>
-          {l.status === "paused" ? <span class="count">paused</span> : l.unprocessed_count > 0 && <span class="count">{l.unprocessed_count}</span>}
+          <span class="mono" title={l.slug}>
+            {l.slug}
+          </span>
+          {l.status === "paused" ? (
+            <span class="count paused" role="img" aria-label="Paused" title="Paused">
+              <Icon name="pause" />
+            </span>
+          ) : (
+            l.unprocessed_count > 0 && <span class="count mark">{l.unprocessed_count}</span>
+          )}
         </a>
       ))}
       <div class="nav-foot">
@@ -314,6 +310,7 @@ export function Shell({ route, children }: { route: Route; children: ComponentCh
   const routeKey = JSON.stringify(route);
   const first = useRef(true);
   useEffect(() => {
+    document.title = `${routeTitle(route)} · ${APP_TITLE}`;
     setMenu(false);
     if (first.current) first.current = false;
     else {
@@ -346,6 +343,9 @@ export function Shell({ route, children }: { route: Route; children: ComponentCh
 
   return (
     <OverviewContext.Provider value={overview}>
+      <button class="btn skip" type="button" onClick={() => main.current?.focus()}>
+        Skip to content
+      </button>
       <div id="app">
         <header class="topbar">
           <button

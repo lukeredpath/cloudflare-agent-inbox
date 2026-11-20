@@ -85,45 +85,42 @@ export function MessagesScreen({ lane, status }: { lane: string; status: string 
         ) : (
           <>
             <div class="table-wrap" aria-busy={loading}>
-              <table class="table stack-sm">
+              <table class="table cards">
                 <thead>
                   <tr>
                     <th>{sortButton("received_at", "Received")}</th>
                     <th>Lane</th>
-                    <th>Sender</th>
-                    <th>Subject</th>
+                    <th>Message</th>
                     <th class="num">{sortButton("size", "Size")}</th>
                     <th class="num">Files</th>
-                    <th>Flags</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {shown.map((m) => (
                     <tr key={m.id} class="clickable" onClick={rowLink(to.message(m.id))}>
-                      <td data-l="Received" class="nowrap" title={formatFull(m.received_at)}>
-                        <a href={to.message(m.id)}>{formatWhen(m.received_at)}</a>
+                      <td class="nowrap" title={formatFull(m.received_at)}>
+                        {formatWhen(m.received_at)}
                       </td>
-                      <td data-l="Lane" class="mono">
-                        {m.lane}
+                      <td class="mono nowrap">{m.lane}</td>
+                      <td class="cell-msg t1 full">
+                        <div class="cell-stack">
+                          <a class="cell-link" href={to.message(m.id)}>
+                            <UntrustedInline text={m.untrusted_subject ?? "(no subject)"} truncate />
+                          </a>
+                          <UntrustedInline text={m.untrusted_envelope_from} truncate />
+                        </div>
                       </td>
-                      <td data-l="Sender" class="cell-sender">
-                        <UntrustedInline text={m.untrusted_envelope_from} truncate />
-                      </td>
-                      <td data-l="Subject" class="cell-subject">
-                        <UntrustedInline text={m.untrusted_subject ?? "(no subject)"} truncate />
-                      </td>
-                      <td data-l="Size" class="num">
-                        {formatBytes(m.size)}
-                      </td>
-                      <td data-l="Files" class="num">
+                      <td class="num">{formatBytes(m.size)}</td>
+                      <td class={`num${m.attachment_count ? "" : " ph-hide"}`}>
                         {m.attachment_count || <span class="muted">0</span>}
+                        <span class="phone-only"> {m.attachment_count === 1 ? "file" : "files"}</span>
                       </td>
-                      <td data-l="Flags">
-                        <MessageFlags message={m} />
-                      </td>
-                      <td data-l="Status">
-                        <ProcessedPill processed={m.processed} />
+                      <td class="end">
+                        <span class="status-cell">
+                          <ProcessedPill processed={m.processed} quiet />
+                          <MessageFlags message={m} />
+                        </span>
                       </td>
                     </tr>
                   ))}

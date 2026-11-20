@@ -168,7 +168,7 @@ export function LaneScreen({ slug }: { slug: string }) {
           >
             {data.recent_messages.length ? (
               <div class="table-wrap">
-                <table class="table stack-sm">
+                <table class="table cards">
                   <thead>
                     <tr>
                       <th>Received</th>
@@ -179,14 +179,14 @@ export function LaneScreen({ slug }: { slug: string }) {
                   <tbody>
                     {data.recent_messages.map((m) => (
                       <tr key={m.id} class="clickable" onClick={rowLink(to.message(m.id))}>
-                        <td data-l="Received" class="nowrap">
-                          <a href={to.message(m.id)}>{formatWhen(m.received_at)}</a>
+                        <td class="nowrap">{formatWhen(m.received_at)}</td>
+                        <td class="t1 full">
+                          <a class="cell-link" href={to.message(m.id)}>
+                            <UntrustedInline text={m.untrusted_subject ?? "(no subject)"} truncate />
+                          </a>
                         </td>
-                        <td data-l="Subject">
-                          <UntrustedInline text={m.untrusted_subject ?? "(no subject)"} truncate />
-                        </td>
-                        <td data-l="Status">
-                          <ProcessedPill processed={m.processed} />
+                        <td class="end">
+                          <ProcessedPill processed={m.processed} quiet />
                         </td>
                       </tr>
                     ))}
@@ -346,14 +346,7 @@ export function LaneScreen({ slug }: { slug: string }) {
             )}
           </Panel>
 
-          <Panel
-            title="Configuration"
-            action={
-              <a class="btn btn-sm btn-ghost" href={to.editLane(slug)}>
-                Edit
-              </a>
-            }
-          >
+          <Panel title="Configuration">
             <dl class="dl">
               <dt>Allowed senders</dt>
               <dd>

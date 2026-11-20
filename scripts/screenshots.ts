@@ -36,7 +36,7 @@ const SHOTS: Shot[] = [
     hash: "#messages/01DEV0000000000000000MSG04",
     height: 900,
     ready: "text=Body not loaded",
-    clip: { x: 244, y: 64, width: 1020, height: 590 },
+    clip: { x: 244, y: 64, width: 1020, height: 598 },
     // The body is only fetched on request, so the picture shows it being asked for.
     prepare: async (page) => {
       await page.getByRole("button", { name: "Show body" }).click();

@@ -36,7 +36,7 @@ export function UntrustedInline({ text, truncate }: { text: string; truncate?: b
 
 /* ---------- Pills ---------- */
 
-type Tone = "ok" | "warn" | "bad" | "info" | "idle";
+type Tone = "ok" | "warn" | "bad" | "info" | "mark" | "idle";
 
 export function Pill({ tone = "idle", plain, title, children }: { tone?: Tone; plain?: boolean; title?: string; children: ComponentChildren }) {
   const cls = ["pill", tone !== "idle" && `pill-${tone}`, plain && "pill-plain"].filter(Boolean).join(" ");
@@ -50,8 +50,9 @@ export function Pill({ tone = "idle", plain, title, children }: { tone?: Tone; p
 export const LaneStatusPill = ({ status }: { status: LaneStatus }) =>
   status === "active" ? <Pill tone="ok">Active</Pill> : <Pill tone="warn">Paused</Pill>;
 
-export const ProcessedPill = ({ processed }: { processed: unknown }) =>
-  processed ? <Pill>Processed</Pill> : <Pill tone="info">Unprocessed</Pill>;
+/** Unprocessed is the thing to act on, so it gets the highlighter. In a list, processed is quiet text, not a pill. */
+export const ProcessedPill = ({ processed, quiet }: { processed: unknown; quiet?: boolean }) =>
+  processed ? quiet ? <span class="muted">Processed</span> : <Pill>Processed</Pill> : <Pill tone="mark">Unprocessed</Pill>;
 
 export function MessageFlags({ message }: { message: Pick<MessageListItem, "is_test" | "keep" | "transform_error_count"> }) {
   return (
