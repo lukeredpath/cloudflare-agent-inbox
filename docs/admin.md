@@ -123,7 +123,9 @@ npm run screenshots
 
 It starts its own copy of the dev stack, so stop `npm run dev` first (it needs ports 5173
 and 8799). The files are written to `site/screenshots/` as lossless WebP, one per colour
-scheme. Set `CHROMIUM_PATH` to use a browser you already have.
+scheme. Each picture is cropped to the page content, without the sidebar and header, using the
+`clip` for it in `scripts/screenshots.ts`, so adjust that if a layout change moves things. Set
+`CHROMIUM_PATH` to use a browser you already have.
 
 ## Verifying a deployment, and rolling back
 
