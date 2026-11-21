@@ -100,6 +100,8 @@ export interface LaneFlags {
   /** `address` or `address=dmarc,dkim,spf`. */
   forwardedFrom?: string[];
   clearForwardedFrom?: boolean;
+  blockSender?: string[];
+  clearBlockedSenders?: boolean;
 }
 
 /** `billing@example.org=dmarc,spf` -> { from, require }. The verdicts are validated with the lane schema. */
@@ -150,6 +152,7 @@ function laneView(ctx: CliContext, lane: Lane) {
     retention_days: lane.retentionDays,
     attachment_policy: lane.attachmentPolicy,
     forwarded_from: lane.forwardedFrom,
+    blocked_senders: lane.blockedSenders,
     created_at: lane.createdAt,
     updated_at: lane.updatedAt,
   };
@@ -164,6 +167,7 @@ function laneLines(ctx: CliContext, lane: Lane): string[] {
     `Description:    ${printable(lane.description) || "-"}`,
     `Allowed senders: ${lane.allowedSenders ? lane.allowedSenders.map(printable).join(", ") : "(deployment default)"}`,
     `Forwarded from: ${lane.forwardedFrom.length ? lane.forwardedFrom.map((r) => `${printable(r.from)} (${r.require.join(" or ")})`).join(", ") : "none (direct DKIM only)"}`,
+    `Blocked senders: ${lane.blockedSenders.length ? lane.blockedSenders.map(printable).join(", ") : "none"}`,
     `Shareable:      ${yesNo(lane.shareable)}`,
     `Attachments:    ${p.allowed_types.length ? p.allowed_types.join(", ") : "none allowed"} (max ${bytes(p.max_attachment_bytes)} each)`,
     `Transforms:     ${unzip ? `unzip with secret ${unzip.password_secret}, inner types ${unzip.allow_inner_types.join(", ")}` : "none"}`,
@@ -182,6 +186,7 @@ export async function lanesCreate(ctx: CliContext, slug: string, f: LaneFlags): 
       shareable: f.shareable,
       attachment_policy: policy,
       forwarded_from: f.forwardedFrom ? parseForwardedRules(f.forwardedFrom) : undefined,
+      blocked_senders: f.blockSender,
       max_bytes: f.maxBytes,
       max_text_chars: f.maxTextChars,
       retention_days: f.retentionDays,
@@ -229,6 +234,7 @@ export async function lanesUpdate(ctx: CliContext, slug: string, f: LaneFlags): 
     shareable: f.shareable,
     attachment_policy: policyFrom(lane.attachmentPolicy, f),
     forwarded_from: f.clearForwardedFrom ? [] : f.forwardedFrom ? parseForwardedRules(f.forwardedFrom) : undefined,
+    blocked_senders: f.clearBlockedSenders ? [] : f.blockSender,
     max_bytes: f.maxBytes,
     max_text_chars: f.maxTextChars,
     retention_days: f.retentionDays,

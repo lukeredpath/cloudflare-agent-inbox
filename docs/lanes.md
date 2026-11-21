@@ -68,6 +68,28 @@ npm run cli -- lanes create statements \
   their own `*@mail.shop.example.net` rule, or `*`.
 - `lanes update <slug> --clear-forwarded-from` turns it off.
 
+## Blocking senders
+
+Some mail passes authentication but should never be filed. A typical case: a mail
+rule in your provider sends you a confirmation, and its subject repeats the text the
+rule matches, so the confirmation triggers the rule and is forwarded to the lane.
+
+```sh
+npm run cli -- lanes update statements --block-sender noreply@example.net
+npm run cli -- lanes update statements --block-sender '*@alerts.example.net'
+```
+
+- A blocked sender is an address or `*@domain` (exactly that domain, not its
+  subdomains; **quote the `*`**). Repeat the flag for several, up to 100.
+- It matches the **original sender**: the From address of a message forwarded by a
+  rule, or the sender of the inner message when you forward one as an attachment. The
+  envelope sender, which is your forwarding mailbox, is never checked.
+- Blocking happens after authentication, so it cannot be used to find a lane. The
+  message is dropped without a bounce and logged as `sender_blocked` in
+  `rejections list`. Nothing is stored.
+- `--block-sender` replaces the list; `lanes update <slug> --clear-blocked-senders`
+  empties it.
+
 ## Changing a lane
 
 ```sh

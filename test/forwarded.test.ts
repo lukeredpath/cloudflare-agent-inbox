@@ -6,7 +6,7 @@ import { LaneInput, LanePatch, MAX_FORWARDED_RULES } from "../src/core/lane-conf
 import { parseHeaders } from "../src/core/headers";
 import { createLane, getLaneBySlug, updateLane, type Lane } from "../src/core/lanes";
 import { handleEmail } from "../src/worker/email";
-import { AUTH_PASS, FORWARDED_ORIGIN, arcLines, buildEml, type ArcOptions } from "./helpers/eml";
+import { AUTH_PASS, FORWARDED_ORIGIN, arcLines, buildEml, forwardedAttachment, type ArcOptions } from "./helpers/eml";
 import { freshDb } from "./helpers/db";
 import { laneAddress, makeMessage, testEnv } from "./helpers/mail";
 
@@ -284,6 +284,50 @@ describe("end to end", () => {
   it("is off deployment-wide when no forwarder is trusted", async () => {
     await deliver(forwarded(), { TRUSTED_ARC_FORWARDERS: "" });
     expect(await rows()).toHaveLength(0);
+  });
+
+  describe("blocked senders", () => {
+    it("drops mail whose original sender is blocked, by address or domain, and logs why without storing it", async () => {
+      for (const pattern of ["billing@billing.example.org", "*@billing.example.org"]) {
+        await updateLane(db, lane.id, { blocked_senders: [pattern] });
+        const message = await deliver(forwarded({}, { text: "PRIVATE BODY" }));
+        expect(message.rejected).toBeNull();
+      }
+      expect(await rows()).toHaveLength(0);
+      const logged = await rejections();
+      expect(logged).toMatchObject([{ reason: "sender_blocked" }, { reason: "sender_blocked" }]);
+      expect(JSON.stringify(logged)).not.toContain("PRIVATE BODY");
+    });
+
+    it("lets other senders through, and ignores the envelope sender (the forwarding mailbox)", async () => {
+      await updateLane(db, lane.id, { blocked_senders: ["someone@example.net", "*@billing.example.com", "sender@example.com"] });
+      expect((await deliver(forwarded())).rejected).toBeNull();
+      expect(await rows()).toHaveLength(1);
+    });
+
+    it("blocks the original sender of a message forwarded as an attachment", async () => {
+      const attachment = forwardedAttachment({ from: "spam@junk.example.net" });
+      const outer = (blocked: string[]) =>
+        updateLane(db, lane.id, { blocked_senders: blocked }).then(() => deliver(forwarded({}, { attachments: [attachment] })));
+      await outer(["spam@junk.example.net"]);
+      expect(await rows()).toHaveLength(0);
+      expect(await rejections()).toMatchObject([{ reason: "sender_blocked" }]);
+    });
+
+    it("does not reveal a lane to mail that fails authentication", async () => {
+      await updateLane(db, lane.id, { blocked_senders: ["billing@billing.example.org"] });
+      await deliver(forwarded({ recorded: "arc=pass; dmarc=fail header.from=billing.example.org" }));
+      expect(await rejections()).toMatchObject([{ reason: "auth_failed" }]);
+    });
+
+    it("validates patterns, and a patch never disturbs them", async () => {
+      await updateLane(db, lane.id, { blocked_senders: ["A@Example.org", "*@example.net"] });
+      expect((await updateLane(db, lane.id, { description: "x" })).blockedSenders).toEqual(["a@example.org", "*@example.net"]);
+      for (const bad of [["*"], ["not-an-address"], ["*@co.uk"], ["a@example.org", "a@example.org"]]) {
+        await expect(updateLane(db, lane.id, { blocked_senders: bad })).rejects.toThrow();
+      }
+      expect((await updateLane(db, lane.id, { blocked_senders: [] })).blockedSenders).toEqual([]);
+    });
   });
 
   it("lane config round-trips and patches without disturbing other fields", async () => {

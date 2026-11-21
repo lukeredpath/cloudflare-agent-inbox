@@ -40,6 +40,7 @@ export interface LaneForm {
   sendersMode: "default" | "list";
   senders: string;
   rules: RuleRow[];
+  blocked: string;
   shareable: boolean;
   types: string[];
   otherTypes: string;
@@ -54,7 +55,7 @@ export interface LaneForm {
   days: string;
 }
 
-export type FieldKey = "slug" | "description" | "senders" | "rules" | "types" | "maxAtt" | "secret" | "inner" | "bytes" | "chars" | "days";
+export type FieldKey = "slug" | "description" | "senders" | "rules" | "blocked" | "types" | "maxAtt" | "secret" | "inner" | "bytes" | "chars" | "days";
 export type FieldErrors = Partial<Record<FieldKey, string>>;
 
 export const FIELD_LABELS: Record<FieldKey, string> = {
@@ -62,6 +63,7 @@ export const FIELD_LABELS: Record<FieldKey, string> = {
   description: "Description",
   senders: "Allowed senders",
   rules: "Forwarded-from rules",
+  blocked: "Blocked senders",
   types: "Attachment types",
   maxAtt: "Max attachment size",
   secret: "Secret name",
@@ -85,6 +87,7 @@ export function emptyForm(): LaneForm {
     sendersMode: "default",
     senders: "",
     rules: [],
+    blocked: "",
     shareable: false,
     types: ["application/pdf"],
     otherTypes: "",
@@ -110,6 +113,7 @@ export function formFromLane(lane: LaneView): LaneForm {
     sendersMode: lane.allowed_senders ? "list" : "default",
     senders: (lane.allowed_senders ?? []).join("\n"),
     rules: lane.forwarded_from.map((r) => ({ from: r.from, require: [...r.require], touched: false })),
+    blocked: lane.blocked_senders.join("\n"),
     shareable: lane.shareable,
     types: allowed.filter((t) => COMMON_TYPES.includes(t)),
     otherTypes: allowed.filter((t) => !COMMON_TYPES.includes(t)).join("\n"),
@@ -147,6 +151,12 @@ export function ruleError(rule: Pick<RuleRow, "from" | "require">, index: number
   return "";
 }
 
+/** The problem with one blocked-sender entry (an address or *@domain), or "". */
+function blockedError(entry: string): boolean {
+  const kind = ruleKind(entry);
+  return kind !== "exact" && kind !== "domain";
+}
+
 const whole = (text: string, lo: number, hi: number) => /^\d+$/.test(text.trim()) && +text >= lo && +text <= hi;
 const size = (text: string) => (text.trim() !== "" && Number.isFinite(+text) ? Math.round(+text * MIB) : NaN);
 
@@ -168,6 +178,11 @@ export function validate(f: LaneForm, isNew: boolean): FieldErrors {
 
   if (f.rules.length > MAX_RULES) e.rules = `A lane can have up to ${MAX_RULES} rules.`;
   else if (f.rules.some((r, i, all) => ruleError(r, i, all))) e.rules = "Fix the highlighted rules.";
+
+  const blocked = splitLines(f.blocked);
+  const badBlocked = blocked.filter(blockedError);
+  if (blocked.length > MAX_RULES) e.blocked = `A lane can block up to ${MAX_RULES} senders.`;
+  else if (badBlocked.length) e.blocked = `Use an address or *@domain: ${badBlocked.slice(0, 2).join(", ")}${badBlocked.length > 2 ? ` and ${badBlocked.length - 2} more` : ""}.`;
 
   const types = allowedTypes(f);
   if (types.length > 20) e.types = "A lane can allow up to 20 types.";
@@ -197,6 +212,7 @@ export function toRequest(f: LaneForm, isNew: boolean): Record<string, unknown> 
     description: f.description.trim(),
     allowed_senders: f.sendersMode === "list" ? splitLines(f.senders) : null,
     forwarded_from: f.rules.map((r) => ({ from: r.from.trim().toLowerCase(), require: r.require })),
+    blocked_senders: splitLines(f.blocked),
     shareable: f.shareable,
     attachment_policy: {
       allowed_types: allowedTypes(f),
@@ -259,6 +275,7 @@ export function mapIssues(issues: { path: string; message: string }[]): MappedIs
         slug: "slug",
         description: "description",
         allowed_senders: "senders",
+        blocked_senders: "blocked",
         max_bytes: "bytes",
         max_text_chars: "chars",
         retention_days: "days",

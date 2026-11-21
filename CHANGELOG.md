@@ -23,6 +23,12 @@ changes. Each one is listed here.
   set together with `AGENT_INBOX_ACCESS_TEAM_DOMAIN`.
 - Migration `0003_ingest_keys.sql`: `ingest_keys` and `settings` tables, and `source`,
   `ingest_key_id`, `message_id_header` and `body_sha256` columns on `messages`.
+- A lane can block senders: `--block-sender <address or *@domain>` (and `--clear-blocked-senders`
+  on update), also in the admin interface. It matches the original sender, never the forwarding
+  mailbox, and applies only to mail that has already authenticated. Blocked mail is dropped
+  silently, logged as the new `sender_blocked` rejection reason, and never stored. This stops a
+  mail rule's own confirmation message from triggering the rule. Needs migration `0003_blocked_senders.sql`, applied
+  by `npm run deploy`.
 
 ## 0.3.0 (2026-11-20)
 

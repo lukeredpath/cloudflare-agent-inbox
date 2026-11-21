@@ -8,7 +8,7 @@ configure it**. Nothing changes for a deployment that does not.
 
 - **Overview:** every lane with its counts, and what needs attention: transform failures,
   paused lanes and recent rejections.
-- **Lanes:** create, edit (every setting, including forwarded-from rules with a list editor
+- **Lanes:** create, edit (every setting, including blocked senders and forwarded-from rules with a list editor
   and bulk paste), pause and resume, grant and ungrant agents, rotate the address, delete.
   The address is masked until you reveal it, and active share links are listed without the
   links themselves.

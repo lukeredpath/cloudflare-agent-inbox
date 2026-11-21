@@ -46,6 +46,7 @@ export interface LaneView {
   /** null = the deployment default. */
   allowed_senders: string[] | null;
   forwarded_from: { from: string; require: Verdict[] }[];
+  blocked_senders: string[];
   shareable: boolean;
   attachment_policy: { allowed_types: string[]; max_attachment_bytes: number; transforms: UnzipTransformView[] };
   max_bytes: number;

@@ -243,6 +243,31 @@ function LaneFormBody({ isNew, initial, lane }: { isNew: boolean; initial: LaneF
                 onPaste={() => setPasting(true)}
               />
             </FieldGroup>
+
+            <FieldGroup
+              id="blocked"
+              label="Blocked senders"
+              hint={
+                <>
+                  Mail from these original senders is dropped even when it authenticates, for example an automatic confirmation that would otherwise match your
+                  forwarding rule. An address or <code>*@domain</code> per line, matched against the original sender, not the forwarding mailbox.
+                </>
+              }
+              error={errorFor("blocked")}
+            >
+              <textarea
+                class="textarea"
+                id="i-blocked"
+                rows={2}
+                placeholder="one address or *@domain per line"
+                spellcheck={false}
+                value={form.blocked}
+                aria-describedby={describedBy("blocked", true)}
+                aria-invalid={errorFor("blocked") ? true : undefined}
+                onInput={(e) => update({ blocked: e.currentTarget.value })}
+                onBlur={touch("blocked")}
+              />
+            </FieldGroup>
           </div>
         </section>
 

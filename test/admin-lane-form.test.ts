@@ -105,6 +105,7 @@ describe("lane form request", () => {
       address_masked: "x",
       allowed_senders: ["office@example.org"],
       forwarded_from: [{ from: "office@example.org", require: ["dmarc", "dkim"] }],
+      blocked_senders: ["noreply@example.net"],
       shareable: true,
       attachment_policy: {
         allowed_types: ["application/pdf", "image/webp"],

@@ -375,6 +375,17 @@ export function LaneScreen({ slug }: { slug: string }) {
                   </>
                 )}
               </dd>
+              <dt>Blocked senders</dt>
+              <dd>
+                {lane.blocked_senders.length === 0
+                  ? "None"
+                  : lane.blocked_senders.map((s, i) => (
+                      <span key={s}>
+                        {i > 0 && ", "}
+                        <code>{s}</code>
+                      </span>
+                    ))}
+              </dd>
               <dt>Shareable</dt>
               <dd>{lane.shareable ? "Yes" : "No"}</dd>
               <dt>Attachment types</dt>

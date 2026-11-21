@@ -7,7 +7,7 @@ import {
 } from "../core/check-sender.ts";
 import { d1Db, type Db } from "../core/db.ts";
 import { parseRecipient } from "../core/address.ts";
-import { HARD_MAX_MESSAGE_BYTES } from "../core/lane-config.ts";
+import { HARD_MAX_MESSAGE_BYTES, isBlockedSender } from "../core/lane-config.ts";
 import { getLaneByToken, type Lane } from "../core/lanes.ts";
 import { insertMessage, type NewAttachment } from "../core/messages.ts";
 import {
@@ -121,6 +121,16 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
     } catch (e) {
       if (e instanceof IngestError) return void (await reject(e.reason, e.message));
       throw e;
+    }
+
+    // The original sender, never the envelope sender (that is the forwarding mailbox): the From
+    // header of a rule-based forward, or the inner message of one forwarded as an attachment. Only
+    // after authentication, so the list cannot be used to probe a lane, and the mail is dropped
+    // silently like any other rejection. Neither value is verified on every path, which can only
+    // make this stricter: an unverified From can cause a block but never avoid one the sender is
+    // authenticated for.
+    if ([headerFrom, ingested.originalFrom].some((a) => a && isBlockedSender(lane.blockedSenders, a))) {
+      return void (await reject("sender_blocked"));
     }
 
     const { files } = await storeMessage(env, db, lane, {

@@ -78,6 +78,21 @@ export function findForwardedRule(rules: ForwardedFromRule[], address: string): 
   );
 }
 
+export const MAX_BLOCKED_SENDERS = 100;
+
+/** An address or `*@domain` (that exact domain, not its subdomains). Never `*`: that would be pausing the lane. */
+export const BlockedSender = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .refine((v) => fromKind(v) === "exact" || fromKind(v) === "domain", "must be an address or *@domain (not a public suffix)");
+
+/** Whether a From or envelope address is on a lane's block list: an exact match or its domain's wildcard. */
+export function isBlockedSender(blocked: string[], address: string): boolean {
+  const domain = address.slice(address.lastIndexOf("@") + 1);
+  return blocked.includes(address) || blocked.includes(`*@${domain}`);
+}
+
 export const DEFAULT_MAX_BYTES = 10 * MIB;
 export const DEFAULT_MAX_TEXT_CHARS = 50_000;
 export const DEFAULT_RETENTION_DAYS = 90;
@@ -98,6 +113,10 @@ const fields = {
     .array(ForwardedFromRule)
     .max(MAX_FORWARDED_RULES)
     .refine((rules) => new Set(rules.map((r) => r.from)).size === rules.length, "each From pattern may appear only once"),
+  blocked_senders: z
+    .array(BlockedSender)
+    .max(MAX_BLOCKED_SENDERS)
+    .refine((list) => new Set(list).size === list.length, "each sender may appear only once"),
   shareable: z.boolean(),
   max_bytes: z.number().int().min(1024).max(HARD_MAX_MESSAGE_BYTES),
   max_text_chars: z.number().int().min(100).max(500_000),
@@ -110,6 +129,7 @@ export const LaneInput = z.strictObject({
   allowed_senders: fields.allowed_senders.default(null),
   attachment_policy: fields.attachment_policy.default(() => AttachmentPolicy.parse({})),
   forwarded_from: fields.forwarded_from.default([]),
+  blocked_senders: fields.blocked_senders.default([]),
   shareable: fields.shareable.default(false),
   max_bytes: fields.max_bytes.default(DEFAULT_MAX_BYTES),
   max_text_chars: fields.max_text_chars.default(DEFAULT_MAX_TEXT_CHARS),

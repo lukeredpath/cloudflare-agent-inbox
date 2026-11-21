@@ -20,6 +20,7 @@ function laneOptions(cmd: Command, forCreate: boolean): Command {
       "accept mail forwarded by a trusted forwarder from this original sender: address, *@domain or * (quote the *), optionally =dmarc,dkim,spf; wildcards need dmarc (repeatable; default dmarc)",
       collect,
     )
+    .option("--block-sender <pattern>", "refuse mail from this address or *@domain, even when it authenticates (quote the *; repeatable)", collect)
     .option("--shareable", "let agents create share links for this lane's files")
     .option("--allow-type <mime>", "attachment type the lane accepts (repeatable)", collect)
     .option("--max-attachment-bytes <n>", "largest accepted attachment", int)
@@ -33,6 +34,7 @@ function laneOptions(cmd: Command, forCreate: boolean): Command {
       .option("--no-shareable", "turn share links off")
       .option("--clear-allowed-senders", "go back to the deployment's default senders")
       .option("--clear-forwarded-from", "stop accepting forwarded mail on this lane")
+      .option("--clear-blocked-senders", "stop blocking any senders on this lane")
       .option("--no-unzip", "remove the unzip transform");
   }
   return cmd;

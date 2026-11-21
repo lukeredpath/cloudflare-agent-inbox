@@ -345,6 +345,19 @@ describe("errors", () => {
   });
 });
 
+describe("blocked senders", () => {
+  it("sets, shows, keeps and clears the block list", async () => {
+    const r = await cli(["lanes", "create", "a", "--block-sender", "Noreply@Example.org", "--block-sender", "*@junk.example.net"]);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("Blocked senders: noreply@example.org, *@junk.example.net");
+    await cli(["lanes", "update", "a", "--description", "changed"]);
+    expect((await getLaneBySlug(db, "a"))!.blockedSenders).toEqual(["noreply@example.org", "*@junk.example.net"]);
+    await cli(["lanes", "update", "a", "--clear-blocked-senders"]);
+    expect((await getLaneBySlug(db, "a"))!.blockedSenders).toEqual([]);
+    expect((await cli(["lanes", "update", "a", "--block-sender", "*"])).code).toBe(1);
+  });
+});
+
 describe("forwarded rules and diagnostics", () => {
   it("creates a lane that accepts forwarded mail, and shows it", async () => {
     const r = await cli([

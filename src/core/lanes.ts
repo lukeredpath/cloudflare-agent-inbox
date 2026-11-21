@@ -1,6 +1,7 @@
 import type { Db } from "./db.ts";
 import {
   AttachmentPolicy,
+  BlockedSender,
   ForwardedFromRule,
   LaneInput,
   LanePatch,
@@ -29,6 +30,14 @@ function storedRules(json: string | null): ForwardedFromRule[] {
   return rules;
 }
 
+/** Stored entries that no longer validate are dropped, so the list can only ever block less. */
+function storedBlocked(json: string | null): string[] {
+  const raw: unknown = json ? JSON.parse(json) : [];
+  if (!Array.isArray(raw)) return [];
+  const parsed = raw.map((v) => BlockedSender.safeParse(v)).flatMap((r) => (r.success ? [r.data] : []));
+  return [...new Set(parsed)];
+}
+
 export interface Lane {
   id: string;
   slug: string;
@@ -40,6 +49,8 @@ export interface Lane {
   attachmentPolicy: AttachmentPolicyType;
   /** Original senders accepted when mail arrives via a trusted forwarder. */
   forwardedFrom: ForwardedFromRule[];
+  /** Addresses and `*@domain` patterns whose mail is refused even when it authenticates. */
+  blockedSenders: string[];
   shareable: boolean;
   maxBytes: number;
   maxTextChars: number;
@@ -57,6 +68,7 @@ interface LaneRow {
   allowed_senders: string | null;
   attachment_policy: string;
   forwarded_from: string | null;
+  blocked_senders: string | null;
   shareable: number;
   max_bytes: number;
   max_text_chars: number;
@@ -75,6 +87,7 @@ function fromRow(row: LaneRow): Lane {
     allowedSenders: row.allowed_senders ? (JSON.parse(row.allowed_senders) as string[]) : null,
     attachmentPolicy: AttachmentPolicy.parse(JSON.parse(row.attachment_policy)),
     forwardedFrom: storedRules(row.forwarded_from),
+    blockedSenders: storedBlocked(row.blocked_senders),
     shareable: row.shareable === 1,
     maxBytes: row.max_bytes,
     maxTextChars: row.max_text_chars,
@@ -94,8 +107,8 @@ export async function createLane(db: Db, input: unknown): Promise<Lane> {
   try {
     await db.run(
       `INSERT INTO lanes (id, slug, description, address_token, status, allowed_senders, attachment_policy,
-                          forwarded_from, shareable, max_bytes, max_text_chars, retention_days, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                          forwarded_from, blocked_senders, shareable, max_bytes, max_text_chars, retention_days, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         parsed.slug,
@@ -104,6 +117,7 @@ export async function createLane(db: Db, input: unknown): Promise<Lane> {
         parsed.allowed_senders ? JSON.stringify(parsed.allowed_senders) : null,
         JSON.stringify(parsed.attachment_policy),
         parsed.forwarded_from.length ? JSON.stringify(parsed.forwarded_from) : null,
+        parsed.blocked_senders.length ? JSON.stringify(parsed.blocked_senders) : null,
         parsed.shareable ? 1 : 0,
         parsed.max_bytes,
         parsed.max_text_chars,
@@ -167,6 +181,9 @@ export async function updateLane(db: Db, id: string, patch: unknown): Promise<La
   if (parsed.attachment_policy !== undefined) columns.attachment_policy = JSON.stringify(parsed.attachment_policy);
   if (parsed.forwarded_from !== undefined) {
     columns.forwarded_from = parsed.forwarded_from.length ? JSON.stringify(parsed.forwarded_from) : null;
+  }
+  if (parsed.blocked_senders !== undefined) {
+    columns.blocked_senders = parsed.blocked_senders.length ? JSON.stringify(parsed.blocked_senders) : null;
   }
   if (parsed.shareable !== undefined) columns.shareable = parsed.shareable ? 1 : 0;
   if (parsed.max_bytes !== undefined) columns.max_bytes = parsed.max_bytes;

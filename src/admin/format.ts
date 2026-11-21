@@ -31,6 +31,7 @@ export const REASONS: Record<string, string> = {
   unknown_address: "Unknown recipient",
   sender_not_allowed: "Sender not allowed",
   auth_failed: "Authentication failed",
+  sender_blocked: "Sender blocked",
   lane_paused: "Lane paused",
   too_large: "Message too large",
   attachment_not_allowed: "Attachment type not allowed",

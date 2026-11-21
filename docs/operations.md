@@ -27,7 +27,7 @@ ids are fine: they mean nothing outside the database.
 
 `reason` values are the same as the rejection log, plus `rate_limited` (mail from an
 unlisted sender over the rate limit; logged only, never stored): `unknown_address`,
-`sender_not_allowed`, `auth_failed`, `lane_paused`, `too_large`,
+`sender_not_allowed`, `auth_failed`, `sender_blocked`, `lane_paused`, `too_large`,
 `attachment_not_allowed`, `parse_error`. An `error` outcome with `authenticated: true`
 means a verified forward could not be stored; the sender was told to send it again.
 

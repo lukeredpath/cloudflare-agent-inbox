@@ -5,6 +5,7 @@ export const REJECTION_REASONS = [
   "unknown_address",
   "sender_not_allowed",
   "auth_failed",
+  "sender_blocked",
   "lane_paused",
   "too_large",
   "attachment_not_allowed",

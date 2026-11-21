@@ -20,6 +20,7 @@ export function laneView(lane: Lane, mailHostname: string): LaneView {
     address_masked: maskedAddress(lane, mailHostname),
     allowed_senders: lane.allowedSenders,
     forwarded_from: lane.forwardedFrom,
+    blocked_senders: lane.blockedSenders,
     shareable: lane.shareable,
     attachment_policy: lane.attachmentPolicy,
     max_bytes: lane.maxBytes,

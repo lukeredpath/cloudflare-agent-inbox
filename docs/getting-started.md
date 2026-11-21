@@ -348,6 +348,7 @@ is stored beyond headers.
 | `unknown_address` | the address does not match a lane (wrong host, wrong shape, or rotated) | re-copy the address from `lanes get`; check the Email Routing rule |
 | `sender_not_allowed` | the envelope sender is not on the lane's list | add it with `--allowed-sender`, or set `AGENT_INBOX_DEFAULT_ALLOWED_SENDERS`. Forwarding rules rewrite the envelope sender, so check what it became |
 | `auth_failed` | the sender passed, but authentication did not | run `rejections list --diagnostics`. The detail says which path failed: `direct:` (no DKIM pass for an allowed domain, typical for rule-based forwards) or `forwarded:` (for example no `arc=pass`, forwarder not trusted, no aligned verdict, or a From header that is not a single address) |
+| `sender_blocked` | the original sender is on the lane's block list | expected for blocked mail; `lanes update <slug> --block-sender ...` replaces the list, `--clear-blocked-senders` empties it |
 | `lane_paused` | you paused the lane; your own forward bounces so you notice | `lanes resume <slug>` |
 | `too_large` | over the lane's message limit | `lanes update --max-bytes` |
 | `attachment_not_allowed` | a type, size or count the lane does not accept (judged by the file's real type) | `--allow-type`, `--max-attachment-bytes` |
