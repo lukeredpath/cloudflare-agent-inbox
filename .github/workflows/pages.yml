@@ -42,7 +42,7 @@ jobs:
           else
             sed -i "/__AUTHOR_URL__/d" _site/index.html
           fi
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
