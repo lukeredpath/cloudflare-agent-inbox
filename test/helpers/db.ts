@@ -6,7 +6,7 @@ const migrations = import.meta.glob("../../migrations/*.sql", { query: "?raw", i
   string
 >;
 
-const TABLES = ["lanes", "agents", "agent_lanes", "messages", "attachments", "shares", "rejections"];
+const TABLES = ["lanes", "agents", "agent_lanes", "messages", "attachments", "shares", "rejections", "ingest_keys", "settings"];
 const applied = new WeakSet<object>();
 
 /** One statement per `;`. D1's exec() wants one statement per line, so run them individually. */

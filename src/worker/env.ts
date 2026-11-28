@@ -30,6 +30,18 @@ export interface Env {
   ACCESS_AUD?: string;
   /** The built admin app (Workers Static Assets). Only reached through the Access check. */
   ASSETS?: Fetcher;
+  /**
+   * The HTTP ingest endpoint is optional. It is served on INGEST_HOSTNAME only when
+   * ACCESS_TEAM_DOMAIN, INGEST_ACCESS_AUD and INGEST_PRIVATE_KEY are also set; otherwise that
+   * host answers 503.
+   */
+  INGEST_HOSTNAME?: string;
+  /** Audience tag of the Access application (service tokens) in front of INGEST_HOSTNAME. */
+  INGEST_ACCESS_AUD?: string;
+  /** Secret: the private half of the ingest key pair, as a JSON JWK. Set by `ingest-keys init`. */
+  INGEST_PRIVATE_KEY?: string;
+  /** Rate limit per ingest key. Optional: without it nothing is limited. */
+  INGEST_LIMITER?: RateLimit;
   /** Per-bucket cap on logged rejections per rolling day (default 50). */
   MAX_REJECTED_PER_DAY?: string;
   /** Secrets that lane transforms may reference by name. */

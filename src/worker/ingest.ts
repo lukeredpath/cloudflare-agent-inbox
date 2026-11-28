@@ -23,6 +23,10 @@ export interface IngestedAttachment {
 }
 
 export interface Ingested {
+  /** The Message-ID header, trimmed; null when absent. */
+  messageId: string | null;
+  /** The From header's address, normalised; null when absent. */
+  fromAddress: string | null;
   subject: string | null;
   originalFrom: string | null;
   cleanText: string;
@@ -107,6 +111,8 @@ export async function ingest(raw: Uint8Array, lane: Lane): Promise<Ingested> {
   });
 
   return {
+    messageId: parsed.messageId?.trim().slice(0, 998) || null,
+    fromAddress: parsed.from?.address ? normaliseAddress(parsed.from.address).slice(0, 320) : null,
     subject: cleanSubject(parsed.subject),
     originalFrom,
     cleanText: sanitiseText(body, lane.maxTextChars),

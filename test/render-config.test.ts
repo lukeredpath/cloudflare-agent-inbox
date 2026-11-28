@@ -136,6 +136,50 @@ describe("wrangler.example.jsonc", () => {
       );
     });
 
+    describe("optional ingest variables", () => {
+      const ingest = {
+        AGENT_INBOX_INGEST_HOSTNAME: "ingest.example.com",
+        AGENT_INBOX_ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com",
+        AGENT_INBOX_INGEST_ACCESS_AUD: "example-ingest-audience",
+      };
+
+      it("drops the ingest lines when none are set", () => {
+        const out = renderConfig(exampleTemplate, base);
+        expect(out).not.toContain("INGEST_HOSTNAME");
+        expect(out).not.toContain("INGEST_ACCESS_AUD");
+        expect(out).toContain('"name": "INGEST_LIMITER"');
+      });
+
+      it("includes the ingest route and variables, with or without the admin interface", () => {
+        for (const env of [{ ...base, ...ingest }, { ...base, ...admin, ...ingest }]) {
+          const out = renderConfig(exampleTemplate, env);
+          expect(out).toContain('"pattern": "ingest.example.com"');
+          expect(out).toContain('"INGEST_HOSTNAME": "ingest.example.com"');
+          expect(out).toContain('"INGEST_ACCESS_AUD": "example-ingest-audience"');
+        }
+        expect(renderConfig(exampleTemplate, { ...base, ...ingest })).not.toContain("ADMIN_HOSTNAME");
+      });
+
+      it("requires the hostname, the team domain and the audience together", () => {
+        for (const name of Object.keys(ingest)) {
+          const partial = Object.fromEntries(Object.entries(ingest).filter(([k]) => k !== name));
+          expect(() => renderConfig(exampleTemplate, { ...base, ...partial })).toThrow(/Set all of these build variables or none/);
+        }
+        expect(() => renderConfig(exampleTemplate, { ...base, ...admin, AGENT_INBOX_INGEST_HOSTNAME: "ingest.example.com" })).toThrow(
+          "AGENT_INBOX_INGEST_ACCESS_AUD",
+        );
+      });
+
+      it("keeps the ingest host on its own hostname", () => {
+        expect(() => renderConfig(exampleTemplate, { ...base, ...admin, ...ingest, AGENT_INBOX_INGEST_HOSTNAME: "admin.example.com" })).toThrow(
+          "must be a different hostname",
+        );
+        expect(() => renderConfig(exampleTemplate, { ...base, ...ingest, AGENT_INBOX_INGEST_HOSTNAME: base.AGENT_INBOX_MAIL_HOSTNAME! })).toThrow(
+          "AGENT_INBOX_INGEST_HOSTNAME must differ from AGENT_INBOX_MAIL_HOSTNAME",
+        );
+      });
+    });
+
     it("rejects unsafe values for optional variables too", () => {
       expect(() => renderConfig(exampleTemplate, { ...base, ...admin, AGENT_INBOX_ACCESS_AUD: 'x","y":"z' })).toThrow(
         "Unsupported characters in: AGENT_INBOX_ACCESS_AUD",

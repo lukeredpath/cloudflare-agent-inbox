@@ -13,6 +13,11 @@ export interface NewMessage {
   cleanText: string;
   rawKey: string | null;
   isTest: boolean;
+  /** Where it came from; default email. API messages carry the key id and what identifies a repeat. */
+  source?: "email" | "api";
+  ingestKeyId?: string | null;
+  messageIdHeader?: string | null;
+  bodySha256?: string | null;
 }
 
 export interface NewAttachment {
@@ -30,8 +35,8 @@ export async function insertMessage(db: Db, msg: NewMessage, attachments: NewAtt
   const statements: Statement[] = [
     {
       sql: `INSERT INTO messages (id, lane_id, received_at, envelope_from, header_from, original_from, subject, size,
-                                  auth_summary, clean_text, raw_key, is_test)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                  auth_summary, clean_text, raw_key, is_test, source, ingest_key_id, message_id_header, body_sha256)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
         msg.id,
         msg.laneId,
@@ -45,6 +50,10 @@ export async function insertMessage(db: Db, msg: NewMessage, attachments: NewAtt
         msg.cleanText,
         msg.rawKey,
         msg.isTest ? 1 : 0,
+        msg.source ?? "email",
+        msg.ingestKeyId ?? null,
+        msg.messageIdHeader ?? null,
+        msg.bodySha256 ?? null,
       ],
     },
     ...attachments.map((a) => ({

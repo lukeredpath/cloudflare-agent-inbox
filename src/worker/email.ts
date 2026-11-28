@@ -123,7 +123,7 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
       throw e;
     }
 
-    const files = await storeMessage(env, db, lane, {
+    const { files } = await storeMessage(env, db, lane, {
       raw,
       envelopeFrom,
       headerFrom,
@@ -139,18 +139,21 @@ export async function handleEmail(message: ForwardableEmailMessage, env: Env): P
   }
 }
 
-async function storeMessage(
-  env: Env,
-  db: Db,
-  lane: Lane,
-  input: {
-    raw: Uint8Array;
-    envelopeFrom: string;
-    headerFrom: string | null;
-    authSummary: string;
-    ingested: Awaited<ReturnType<typeof ingest>>;
-  },
-): Promise<number> {
+export interface StoreInput {
+  raw: Uint8Array;
+  envelopeFrom: string;
+  headerFrom: string | null;
+  authSummary: string;
+  ingested: Awaited<ReturnType<typeof ingest>>;
+  /** Set for messages from the ingest endpoint. */
+  api?: { keyId: string; messageIdHeader: string; bodySha256: string };
+}
+
+/**
+ * Runs transforms, writes the raw message and files to R2, then records it in D1. On any
+ * failure the R2 objects are removed again, so nothing partial is left behind.
+ */
+export async function storeMessage(env: Env, db: Db, lane: Lane, input: StoreInput): Promise<{ id: string; files: number }> {
   const messageId = ulid();
   const prefix = `lanes/${lane.id}/${messageId}`;
   const files: StoredFile[] = [];
@@ -210,10 +213,14 @@ async function storeMessage(
         cleanText: input.ingested.cleanText,
         rawKey,
         isTest: false,
+        source: input.api ? "api" : "email",
+        ingestKeyId: input.api?.keyId ?? null,
+        messageIdHeader: input.api?.messageIdHeader ?? null,
+        bodySha256: input.api?.bodySha256 ?? null,
       },
       attachments,
     );
-    return files.length;
+    return { id: messageId, files: files.length };
   } catch (e) {
     // Nothing partial is left behind.
     await env.BUCKET.delete(written).catch(() => {});

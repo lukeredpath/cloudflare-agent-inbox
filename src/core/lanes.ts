@@ -212,7 +212,8 @@ export async function deleteLane(db: Db, id: string): Promise<void> {
   const results = await db.batch([
     { sql: "UPDATE messages SET deleted_at = ? WHERE lane_id = ? AND deleted_at IS NULL", params: [now, id] },
     { sql: "DELETE FROM agent_lanes WHERE lane_id = ?", params: [id] },
+    { sql: "UPDATE ingest_keys SET revoked_at = ? WHERE lane_id = ? AND revoked_at IS NULL", params: [now, id] },
     { sql: "DELETE FROM lanes WHERE id = ?", params: [id] },
   ]);
-  if (results[2]!.changes === 0) throw new CoreError("Lane not found");
+  if (results[3]!.changes === 0) throw new CoreError("Lane not found");
 }

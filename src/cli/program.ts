@@ -85,6 +85,17 @@ export function buildProgram(ctx: CliContext, emit: (result: c.Result, json: boo
   agents.command("revoke <agent>").option("--yes", "skip the confirmation").description("disable an agent's token")
     .action(run((a: string, o: { yes?: boolean }) => c.agentsRevoke(ctx, a, o.yes)));
 
+  // ingest keys
+  const ingestKeys = program.command("ingest-keys").description("manage signing keys for the HTTP ingest endpoint");
+  ingestKeys.command("init").description("create the ingest key pair (the private key becomes a Worker secret)")
+    .option("--replace", "make a new key pair; every existing key is revoked").option("--yes", "skip the confirmation")
+    .action(run((o: { replace?: boolean; yes?: boolean }) => c.ingestKeysInit(ctx, o.replace, o.yes)));
+  ingestKeys.command("create <lane>").description("create a key for one lane and print its secret once (interactive terminals only)")
+    .action(async (lane: string, _o: unknown, cmd: Command) => emit(await c.ingestKeysCreate(ctx, lane, json(cmd)), false));
+  ingestKeys.command("list").description("list keys with lane, created and last used").action(run(() => c.ingestKeysList(ctx)));
+  ingestKeys.command("revoke <id>").option("--yes", "skip the confirmation").description("disable a key")
+    .action(run((id: string, o: { yes?: boolean }) => c.ingestKeysRevoke(ctx, id, o.yes)));
+
   // secrets
   program.command("secrets").description("manage Worker secrets").command("set <name>")
     .description("set a lane secret; the value is read from the terminal or stdin, never from an argument")

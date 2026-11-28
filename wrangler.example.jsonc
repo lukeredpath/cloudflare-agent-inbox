@@ -13,12 +13,13 @@
   "preview_urls": false,
   "observability": { "enabled": true },
 
-  // The MCP host and the share-link host are separate custom domains. The admin host is
-  // optional: leave the AGENT_INBOX_ADMIN_* variables unset and its lines are dropped.
+  // The MCP host and the share-link host are separate custom domains. The admin and ingest
+  // hosts are optional: leave their variables unset and their lines are dropped.
   "routes": [
     { "pattern": "<MCP_HOSTNAME>", "custom_domain": true },
     { "pattern": "<SHARE_HOSTNAME>", "custom_domain": true },
     { "pattern": "<ADMIN_HOSTNAME?>", "custom_domain": true },
+    { "pattern": "<INGEST_HOSTNAME?>", "custom_domain": true },
   ],
 
   "vars": {
@@ -31,6 +32,8 @@
     "ADMIN_HOSTNAME": "<ADMIN_HOSTNAME?>",
     "ACCESS_TEAM_DOMAIN": "<ACCESS_TEAM_DOMAIN?>",
     "ACCESS_AUD": "<ACCESS_AUD?>",
+    "INGEST_HOSTNAME": "<INGEST_HOSTNAME?>",
+    "INGEST_ACCESS_AUD": "<INGEST_ACCESS_AUD?>",
   },
 
   // The admin app (built by `npm run build:admin`). The Worker runs first so every request
@@ -48,8 +51,12 @@
 
   // Cloudflare's rate-limiting binding: mail from unlisted senders is limited per location
   // (20 per 10 seconds) before any database work. namespace_id only has to be an integer
-  // that no other rate limiter in your account uses.
-  "ratelimits": [{ "name": "MAIL_LIMITER", "namespace_id": "51730", "simple": { "limit": 20, "period": 10 } }],
+  // that no other rate limiter in your account uses. INGEST_LIMITER limits each ingest key
+  // (60 a minute); it only counts requests that passed the signature check.
+  "ratelimits": [
+    { "name": "MAIL_LIMITER", "namespace_id": "51730", "simple": { "limit": 20, "period": 10 } },
+    { "name": "INGEST_LIMITER", "namespace_id": "51731", "simple": { "limit": 60, "period": 60 } },
+  ],
 
   // Hourly purge of expired and deleted data.
   "triggers": { "crons": ["17 * * * *"] }

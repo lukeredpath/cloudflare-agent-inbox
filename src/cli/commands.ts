@@ -9,6 +9,15 @@ import {
   revokeAgent,
   ungrantLane,
 } from "../core/agents.ts";
+import {
+  createIngestKey,
+  generateIngestKeyPair,
+  getIngestPublicKey,
+  listIngestKeys,
+  revokeAllIngestKeys,
+  revokeIngestKey,
+  setIngestPublicKey,
+} from "../core/ingest-keys.ts";
 import { SECRET_NAME_PATTERN, type AttachmentPolicy } from "../core/lane-config.ts";
 import {
   CoreError,
@@ -303,6 +312,68 @@ export async function agentsRevoke(ctx: CliContext, agentName: string, yes: bool
   await confirmDestructive(ctx, `Revoking "${printable(agent.name)}" disables its token at once`, yes);
   await revokeAgent(ctx.db, agent.id);
   return { data: { agent: agent.name, revoked: true }, lines: [`Revoked ${printable(agent.name)}.`] };
+}
+
+// ---- ingest keys
+
+/**
+ * Creates the ingest key pair: the private half goes straight to the Worker as a secret and is
+ * never printed; the public half is stored in D1 so later `create` calls can seal new secrets.
+ */
+export async function ingestKeysInit(ctx: CliContext, replace: boolean | undefined, yes: boolean | undefined): Promise<Result> {
+  const existing = await getIngestPublicKey(ctx.db);
+  if (existing && !replace) {
+    return { data: { initialised: true, replaced: false }, lines: ["Ingest is already set up. Pass --replace to make a new key pair (every key stops working)."] };
+  }
+  if (existing) await confirmDestructive(ctx, "Replacing the key pair revokes every ingest key; callers need new ones", yes);
+  const pair = await generateIngestKeyPair();
+  await ctx.secrets.set("INGEST_PRIVATE_KEY", pair.privateJwk);
+  const revoked = existing ? await revokeAllIngestKeys(ctx.db) : 0;
+  await setIngestPublicKey(ctx.db, pair.publicJwk);
+  return {
+    data: { initialised: true, replaced: Boolean(existing), revoked },
+    lines: [
+      existing ? `Replaced the ingest key pair and revoked ${revoked} key(s).` : "Set up ingest: the private key is a Worker secret (INGEST_PRIVATE_KEY).",
+      "Create a key for a lane with `ingest-keys create <lane>`.",
+    ],
+  };
+}
+
+export async function ingestKeysCreate(ctx: CliContext, laneSlug: string, json: boolean): Promise<Result> {
+  // Refuse anywhere the secret could be captured by a tool or a transcript.
+  if (json || !ctx.io.stdoutIsTTY || !ctx.io.stdinIsTTY) {
+    throw new CliError("Creating an ingest key prints a secret. Run it yourself in an interactive terminal, without --json or piped output.");
+  }
+  const lane = await requireLane(ctx, laneSlug);
+  const { id, secret } = await createIngestKey(ctx.db, lane.id);
+  return {
+    data: { id, lane: lane.slug },
+    lines: [
+      `Created ingest key ${id} for ${printable(lane.slug)}. Its secret, shown once:`,
+      "",
+      `  ${secret}`,
+      "",
+      "Store it now with the key id: it cannot be shown again. Revoke it with `ingest-keys revoke`.",
+    ],
+  };
+}
+
+export async function ingestKeysList(ctx: CliContext): Promise<Result> {
+  const keys = await listIngestKeys(ctx.db);
+  const data = keys.map((k) => ({ id: k.id, lane: k.laneSlug, created_at: k.createdAt, last_used_at: k.lastUsedAt, revoked_at: k.revokedAt }));
+  const lines = keys.length
+    ? table(
+        ["KEY", "LANE", "STATUS", "CREATED", "LAST USED"],
+        keys.map((k) => [k.id, k.laneSlug, k.revokedAt ? `revoked ${k.revokedAt}` : "active", k.createdAt, k.lastUsedAt ?? "never"]),
+      )
+    : ["No ingest keys yet."];
+  return { data, lines };
+}
+
+export async function ingestKeysRevoke(ctx: CliContext, id: string, yes: boolean | undefined): Promise<Result> {
+  await confirmDestructive(ctx, `Revoking ${printable(id)} stops it working at once`, yes);
+  const key = await revokeIngestKey(ctx.db, id);
+  return { data: { id: key.id, lane: key.laneSlug, revoked: true }, lines: [`Revoked ${key.id} (${printable(key.laneSlug)}).`] };
 }
 
 // ---- secrets

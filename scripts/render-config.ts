@@ -4,10 +4,17 @@ const ENV_PREFIX = "AGENT_INBOX_";
 // Hostnames, worker names and comma-separated address lists only. Anything
 // else could break out of a JSON string.
 const RELATIVE_PATH_KEYS = ["main", "migrations_dir", "directory"];
-/** Optional variables that only make sense together: all set, or none. */
-const OPTIONAL_GROUPS = [["ADMIN_HOSTNAME", "ACCESS_TEAM_DOMAIN", "ACCESS_AUD"]];
+/** Optional variables that only make sense together: all set, or none. Both groups share the Access team domain. */
+const OPTIONAL_GROUPS = [
+  ["ADMIN_HOSTNAME", "ACCESS_TEAM_DOMAIN", "ACCESS_AUD"],
+  ["INGEST_HOSTNAME", "ACCESS_TEAM_DOMAIN", "INGEST_ACCESS_AUD"],
+];
+/** Variables that belong to more than one group: set when any of those groups is. */
+const SHARED_KEYS = ["ACCESS_TEAM_DOMAIN"];
 /** Custom domains the Worker answers on: each needs its own, or one would shadow another. The mail hostname is not one. */
-const ROUTE_HOSTNAME_KEYS = ["MCP_HOSTNAME", "SHARE_HOSTNAME", "ADMIN_HOSTNAME"];
+const ROUTE_HOSTNAME_KEYS = ["MCP_HOSTNAME", "SHARE_HOSTNAME", "ADMIN_HOSTNAME", "INGEST_HOSTNAME"];
+/** Hosts that must also differ from the mail hostname. */
+const OWN_HOST_KEYS = ["ADMIN_HOSTNAME", "INGEST_HOSTNAME"];
 const SAFE_VALUE = /^[A-Za-z0-9._,@+:/-]+$/;
 
 export interface RenderOptions {
@@ -26,11 +33,16 @@ export function renderConfig(
 ): string {
   const isSet = (name: string) => Boolean(env[ENV_PREFIX + name]);
 
+  const groupError = (group: string[]) =>
+    new Error(`Set all of these build variables or none: ${group.map((n) => ENV_PREFIX + n).join(", ")}`);
   for (const group of OPTIONAL_GROUPS) {
-    const set = group.filter(isSet);
-    if (set.length > 0 && set.length < group.length) {
-      throw new Error(`Set all of these build variables or none: ${group.map((n) => ENV_PREFIX + n).join(", ")}`);
-    }
+    // A shared variable on its own does not switch a group on; any of the group's own ones does.
+    const own = group.filter((n) => !SHARED_KEYS.includes(n));
+    if (own.some(isSet) && !group.every(isSet)) throw groupError(group);
+  }
+  for (const shared of SHARED_KEYS.filter(isSet)) {
+    const groups = OPTIONAL_GROUPS.filter((g) => g.includes(shared));
+    if (!groups.some((g) => g.every(isSet))) throw groupError(groups[0]!);
   }
 
   const lower = (name: string) => env[ENV_PREFIX + name]!.toLowerCase();
@@ -38,9 +50,11 @@ export function renderConfig(
   if (new Set(routes).size !== routes.length) {
     throw new Error(`Each of ${ROUTE_HOSTNAME_KEYS.map((n) => ENV_PREFIX + n).join(", ")} must be a different hostname`);
   }
-  // The mail hostname may share a name with the MCP or share host, but the admin interface stays on its own.
-  if (isSet("ADMIN_HOSTNAME") && isSet("MAIL_HOSTNAME") && lower("ADMIN_HOSTNAME") === lower("MAIL_HOSTNAME")) {
-    throw new Error("AGENT_INBOX_ADMIN_HOSTNAME must differ from AGENT_INBOX_MAIL_HOSTNAME");
+  // The mail hostname may share a name with the MCP or share host, but the admin and ingest hosts stay on their own.
+  for (const key of OWN_HOST_KEYS) {
+    if (isSet(key) && isSet("MAIL_HOSTNAME") && lower(key) === lower("MAIL_HOSTNAME")) {
+      throw new Error(`${ENV_PREFIX}${key} must differ from AGENT_INBOX_MAIL_HOSTNAME`);
+    }
   }
 
   // Drop lines that depend on an optional variable that is not set.

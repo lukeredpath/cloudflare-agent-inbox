@@ -3,6 +3,7 @@ import { d1Db } from "../core/db.ts";
 import { authenticateAgent } from "./auth.ts";
 import { handleAdmin } from "./admin/index.ts";
 import { handleEmail } from "./email.ts";
+import { handleIngest } from "./http-ingest.ts";
 import { logEvent } from "./log.ts";
 import type { Env } from "./env.ts";
 import { buildServer } from "./mcp.ts";
@@ -40,11 +41,12 @@ export default {
     await handleEmail(message, env);
   },
 
-  // Each hostname serves one thing: share links, the agent MCP, or (optionally) the admin interface.
+  // Each hostname serves one thing: share links, the agent MCP, or (optionally) HTTP ingest or the admin interface.
   async fetch(request, env, _ctx): Promise<Response> {
     const host = new URL(request.url).hostname.toLowerCase();
     if (host === env.SHARE_HOSTNAME.toLowerCase()) return handleShare(request, env);
     if (host === env.MCP_HOSTNAME.toLowerCase()) return handleMcp(request, env);
+    if (env.INGEST_HOSTNAME && host === env.INGEST_HOSTNAME.toLowerCase()) return handleIngest(request, env);
     // Checked last, so a misconfigured admin hostname can never shadow the MCP or share host.
     if (env.ADMIN_HOSTNAME && host === env.ADMIN_HOSTNAME.toLowerCase()) return handleAdmin(request, env);
     return new Response("Not found", { status: 404 });
