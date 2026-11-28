@@ -49,9 +49,18 @@ Optional, all or none (see [admin.md](admin.md)):
 | `AGENT_INBOX_ACCESS_TEAM_DOMAIN` | Your Cloudflare Access team domain |
 | `AGENT_INBOX_ACCESS_AUD` | Audience tag of the Access application in front of the admin hostname |
 
-Values may contain letters, digits and `. , @ + : / -` only. The MCP, share and admin
+Optional, all or none, for [HTTP ingest](ingest.md) (the team domain is shared with the
+admin interface):
+
+| Variable | Meaning |
+| --- | --- |
+| `AGENT_INBOX_INGEST_HOSTNAME` | Custom domain serving the ingest endpoint |
+| `AGENT_INBOX_ACCESS_TEAM_DOMAIN` | Your Cloudflare Access team domain |
+| `AGENT_INBOX_INGEST_ACCESS_AUD` | Audience tag of the Access application in front of the ingest hostname |
+
+Values may contain letters, digits and `. , @ + : / -` only. The MCP, share, admin and ingest
 hostnames are custom domains on the Worker and must all differ from each other. The mail
-hostname may be the same as the MCP or share hostname, but not the admin one.
+hostname may be the same as the MCP or share hostname, but not the admin or ingest one.
 
 ## Commands
 
@@ -68,8 +77,8 @@ hostname may be the same as the MCP or share hostname, but not the admin one.
 ## Rate limiting and WAF
 
 The config template includes a rate-limiting binding for inbound mail
-(`MAIL_LIMITER`); its `namespace_id` only has to be an integer that no other rate
-limiter in your account uses. Cloudflare rules for the web hostnames are described in
+(`MAIL_LIMITER`) and one per ingest key (`INGEST_LIMITER`, 60 a minute); each
+`namespace_id` only has to be an integer that no other rate limiter in your account uses. Cloudflare rules for the web hostnames are described in
 [security.md](security.md#cloudflare-protections).
 
 ## Email Routing
@@ -87,6 +96,8 @@ subaddressing: `inbox+<token>@<mail hostname>`.
 | --- | --- | --- |
 | `MAIL_HOSTNAME`, `MCP_HOSTNAME`, `SHARE_HOSTNAME` | variable | rendered from the build variables above |
 | `ADMIN_HOSTNAME`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | variable, optional | the admin interface; rendered only when all three build variables are set |
+| `INGEST_HOSTNAME`, `INGEST_ACCESS_AUD` | variable, optional | HTTP ingest; rendered only when its build variables and the team domain are set |
+| `INGEST_PRIVATE_KEY` | secret, optional | private half of the ingest key pair, set by `ingest-keys init` |
 | `DEFAULT_ALLOWED_SENDERS`, `ALLOWED_DKIM_DOMAINS`, `TRUSTED_ARC_FORWARDERS` | variable | rendered from the build variables above |
 | `MAX_REJECTED_PER_DAY` | variable, optional | per-bucket cap on logged rejections (default 50) |
 | `LANE_SECRET_*` | secret | passwords for lane transforms, set with `secrets set` |

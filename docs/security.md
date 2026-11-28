@@ -189,12 +189,28 @@ entry count, total decompressed size (enforced while streaming), nested archives
 and inner types. A failed transform never rejects the message: the attachment is
 flagged with `transform_error`, visible in `lanes get` and to agents.
 
+## HTTP ingest
+
+Optional, and off unless configured ([ingest.md](ingest.md)). A request must pass Cloudflare
+Access with a service token, which the Worker checks again, failing closed; then carry a
+fresh timestamp and an HMAC-SHA256 signature over the timestamp, method, path and body hash,
+made with a key that belongs to the lane in the URL. Key, timestamp and signature failures
+all get the same 401. Keys can only add messages to their own lane.
+
+Secrets are stored encrypted to a key pair whose private half is a Worker secret, so neither
+the CLI's credentials nor read access to D1 reveal them. A message that gets in this way is
+still parsed and checked against the lane's attachment policy, and is stored as untrusted
+content like any other. The original sender's DKIM signature is not checked yet, so a
+compromised caller could file a forged receipt into the lanes it holds keys for: give each
+caller keys only for the lanes it needs.
+
 ## The admin CLI
 
 It prints metadata only. A message body is printed only with an explicit
 `--show-body`, intended for a person reading it themselves. Untrusted fields are
 stripped of terminal escape sequences and invisible characters before printing.
-`agents create` refuses to print a token unless it has an interactive terminal.
+`agents create` and `ingest-keys create` refuse to print a token or secret unless they have
+an interactive terminal.
 
 ## The admin interface
 

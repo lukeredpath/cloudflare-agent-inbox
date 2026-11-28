@@ -69,7 +69,8 @@ paste the [agent-guided setup prompt](docs/agent-setup.md) into an agent.
 
 See [docs/security.md](docs/security.md) for the threat model,
 [docs/operations.md](docs/operations.md) for logs and diagnosing problems,
-[docs/lanes.md](docs/lanes.md) for lane recipes and
+[docs/lanes.md](docs/lanes.md) for lane recipes,
+[docs/ingest.md](docs/ingest.md) for the optional signed HTTP ingest endpoint and
 [docs/deploy.md](docs/deploy.md) for deployment.
 
 ## Quick start
@@ -98,6 +99,7 @@ It prints metadata only; message bodies need `messages get <id> --show-body`.
 | --- | --- |
 | `lanes create\|list\|get\|update\|pause\|resume\|delete\|rotate` | manage lanes and their addresses |
 | `agents create\|list\|grant\|ungrant\|revoke` | manage agent tokens and what they can read |
+| `ingest-keys init\|create\|list\|revoke` | manage per-lane signing keys for [HTTP ingest](docs/ingest.md) |
 | `secrets set LANE_SECRET_NAME` | set a Worker secret; the value is read from the terminal or stdin |
 | `messages list\|get\|mark-unprocessed\|keep\|delete\|inject-test` | inspect and fix messages |
 | `rejections list` | see what was rejected, and why |
@@ -105,8 +107,8 @@ It prints metadata only; message bodies need `messages get <id> --show-body`.
 Destructive commands (`lanes delete`, `lanes rotate`, `agents revoke`,
 `messages delete`) ask for confirmation, or refuse in a non-interactive
 session unless `--yes` is passed. Automation should not pass `--yes`.
-`agents create` refuses to run unless it has a terminal, so a token is never
-captured by a tool or transcript.
+`agents create` and `ingest-keys create` refuse to run unless they have a terminal, so a
+token or secret is never captured by a tool or transcript.
 
 ## Admin interface
 
@@ -120,6 +122,13 @@ see [Running the admin interface locally](#running-the-admin-interface-locally).
   <source media="(prefers-color-scheme: dark)" srcset="site/screenshots/overview-dark.webp">
   <img alt="The admin overview: a Needs attention panel above a table of lanes with their message counts. The data is invented." src="site/screenshots/overview-light.webp">
 </picture>
+
+## HTTP ingest
+
+An optional endpoint, `POST /ingest/lanes/<slug>` on its own hostname, lets a trusted program
+file a raw message into one lane without forwarding it by email. Requests need a Cloudflare
+Access service token and an HMAC signature from a key that belongs to that lane; repeats are
+recognised and not stored twice. It is off unless configured; see [docs/ingest.md](docs/ingest.md).
 
 ## Configuration
 

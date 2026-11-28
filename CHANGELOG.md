@@ -3,6 +3,27 @@
 Releases are 0.x while the project is experimental: any release can contain breaking
 changes. Each one is listed here.
 
+## Unreleased
+
+### Added
+
+- An optional HTTP ingest endpoint, `POST /ingest/lanes/<slug>` on its own hostname
+  (`docs/ingest.md`), for a trusted program to file a raw message into one lane without
+  forwarding it by email. Requests need a Cloudflare Access service token (checked again by
+  the Worker, failing closed) and an HMAC-SHA256 signature over the timestamp, method, path
+  and body hash, within 300 seconds. Key, timestamp and signature failures all answer the same
+  401. A repeat of the same lane, `Message-ID` and body answers 200 with the stored id.
+  Messages are parsed, checked and stored exactly as email-path ones, marked `source = 'api'`.
+- Per-lane ingest keys, at most two active per lane, managed with `ingest-keys init`,
+  `create`, `list` and `revoke`. Secrets are shown once and stored encrypted to a key pair
+  whose private half is a Worker secret (`INGEST_PRIVATE_KEY`). Deleting a lane revokes its keys.
+- A per-key rate limit (`INGEST_LIMITER`, 60 a minute) that counts only signed requests, and
+  an `ingest` log event per request.
+- Optional build variables `AGENT_INBOX_INGEST_HOSTNAME` and `AGENT_INBOX_INGEST_ACCESS_AUD`,
+  set together with `AGENT_INBOX_ACCESS_TEAM_DOMAIN`.
+- Migration `0003_ingest_keys.sql`: `ingest_keys` and `settings` tables, and `source`,
+  `ingest_key_id`, `message_id_header` and `body_sha256` columns on `messages`.
+
 ## 0.3.0 (2026-11-20)
 
 ### Added

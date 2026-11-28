@@ -21,6 +21,7 @@ ids are fine: they mean nothing outside the database.
 | `mcp` | `agent` (id), `tool`, `outcome` (`ok`, `refused`, `internal_error`) | every agent tool call |
 | `share` | `outcome` (`served`, `not_found`, `missing_object`), `attachment`, `agent`, `bytes` | every share-link request. Records who used a link and which file, never the link |
 | `admin` | `action` (for changes: for example `lanes.update`), `outcome` (`ok`, `refused`, `internal_error`, `access_denied`, `not_configured`, `no_assets`), `status`, `reason` (for `access_denied`) | each change made through the admin interface, and each request it refused. Never who made it or what it touched |
+| `ingest` | `outcome` (`accepted`, `duplicate`, `rejected`, `unauthorized`, `access_denied`, `access_unavailable`, `not_configured`, `not_found`, `bad_method`, `error`), `status`, `reason` (which check failed, for example `key`, `timestamp`, `signature`, `sealed_secret`, `rate_limited`, `content_type`), `key` (id), `lane` (id), `bytes`, `files`, `ms` | every request to the [ingest endpoint](ingest.md). A `sealed_secret` reason means the key was made for a key pair that has since been replaced |
 | `purge` | `expired_links`, `expired_messages`, `removed_messages`, `removed_rejections`, `failed_steps` | once per hourly run |
 | `purge_step_failed` | `step`, `error` | a purge step failed. The other steps still run, and the run is then failed so Cloudflare shows the cron as errored |
 
