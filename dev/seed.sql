@@ -160,3 +160,8 @@ INSERT INTO rejections (id, received_at, bucket, recipient_hint, envelope_from, 
   ('01DEV0000000000000000RJ006', strftime('%Y-%m-%dT%H:%M:%fZ','now','-3 days'), 'lane', 'inbox+m7ta4…', 'statements@bank.example.com', 'statements@bank.example.com', 'lane_paused', NULL, NULL, '01DEV0000000000000000LANE3'),
   ('01DEV0000000000000000RJ007', strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), 'lane', 'inbox+k3x7q…', 'bounce+55700@mail.shop.example.com', 'household@example.net', 'too_large', '31.4 MB, over the 25 MB limit', NULL, '01DEV0000000000000000LANE1'),
   ('01DEV0000000000000000RJ008', strftime('%Y-%m-%dT%H:%M:%fZ','now','-6 days'), 'probe', 'inbox+old0…', 'promo@lists.example.org', NULL, 'unknown_address', NULL, NULL, NULL);
+
+-- A throwaway ingest public key, so keys can be created in the admin app. Its private half was
+-- discarded, so nothing here can open them, and the local Worker has no ingest host.
+INSERT INTO settings (name, value) VALUES
+  ('ingest_public_key', '{"kty":"EC","crv":"P-256","x":"fi218FCzUVJCpnPqWeopknpJS2lwRmC5uG5zo4ssJvo","y":"YTye2xA1U-VBvizR6XezVd4TRgVTscDdLGbjtaOpxUo","ext":true}');

@@ -1,9 +1,11 @@
 import { buildAddress } from "../../core/address.ts";
 import type { Agent } from "../../core/agents.ts";
+import type { IngestKey } from "../../core/ingest-keys.ts";
 import type { Lane } from "../../core/lanes.ts";
 import type { AttachmentRow, MessageRow } from "../../core/messages.ts";
 import type { RejectionRow } from "../../core/rejections.ts";
-import type { AgentView, AttachmentView, LaneView, MessageDetail, MessageListItem, RejectionView } from "./types.ts";
+import type { Env } from "../env.ts";
+import type { AgentView, AttachmentView, IngestKeyView, LaneView, MessageDetail, MessageListItem, RejectionView } from "./types.ts";
 
 /** Enough to recognise an address by, never enough to use it. */
 export function maskedAddress(lane: Lane, mailHostname: string): string {
@@ -86,3 +88,16 @@ export const agentView = (a: Agent, lanes: string[]): AgentView => ({
   revoked_at: a.revokedAt,
   lanes,
 });
+
+export const ingestKeyView = (k: IngestKey): IngestKeyView => ({
+  id: k.id,
+  created_at: k.createdAt,
+  last_used_at: k.lastUsedAt,
+  revoked_at: k.revokedAt,
+});
+
+/** The lane's ingest URL, only when the ingest host would actually serve it (see handleIngest). */
+export function ingestEndpoint(env: Env, slug: string): string | null {
+  if (!env.INGEST_HOSTNAME || !env.ACCESS_TEAM_DOMAIN || !env.INGEST_ACCESS_AUD || !env.INGEST_PRIVATE_KEY) return null;
+  return `https://${env.INGEST_HOSTNAME}/ingest/lanes/${slug}`;
+}

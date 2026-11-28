@@ -13,11 +13,12 @@ import {
   type Lane,
   type LaneSummary,
 } from "../../../core/lanes.ts";
+import { getIngestPublicKey, listIngestKeys, MAX_ACTIVE_KEYS_PER_LANE } from "../../../core/ingest-keys.ts";
 import { listMessagesAdmin } from "../../../core/messages.ts";
 import { listRejections } from "../../../core/rejections.ts";
 import { ApiFailure, json, readJson } from "../http.ts";
 import type { LaneDetail, LaneListItem, OverviewView } from "../types.ts";
-import { fullAddress, laneView, messageItem, rejectionView } from "../views.ts";
+import { fullAddress, ingestEndpoint, ingestKeyView, laneView, messageItem, rejectionView } from "../views.ts";
 import { AGENT_NAME, SLUG, type ApiContext, type Route } from "./route.ts";
 
 const DAY_MS = 86_400_000;
@@ -79,13 +80,15 @@ export const laneRoutes: Route[] = [
     name: "lanes.get",
     handler: async (ctx) => {
       const lane = await requireLane(ctx, ctx.params[0]!);
-      const [summary, agents, shares, failures, rejections, recent] = await Promise.all([
+      const [summary, agents, shares, failures, rejections, recent, ingestKeys, ingestPublicKey] = await Promise.all([
         listLanes(ctx.db).then((all) => all.find((l) => l.id === lane.id)),
         listAgents(ctx.db),
         listActiveShares(ctx.db, lane.id),
         listTransformFailures(ctx.db, lane.id),
         listRejections(ctx.db, { laneId: lane.id, limit: 10 }),
         listMessagesAdmin(ctx.db, { laneId: lane.id, limit: 5 }),
+        listIngestKeys(ctx.db, lane.id),
+        getIngestPublicKey(ctx.db),
       ]);
       const live = agents.filter((a) => !a.revokedAt);
       return json(200, {
@@ -104,6 +107,12 @@ export const laneRoutes: Route[] = [
           untrusted_error: f.transform_error,
         })),
         rejections: rejections.map(rejectionView),
+        ingest: {
+          ready: ingestPublicKey !== null,
+          endpoint: ingestEndpoint(ctx.env, lane.slug),
+          max_active_keys: MAX_ACTIVE_KEYS_PER_LANE,
+          keys: ingestKeys.map(ingestKeyView),
+        },
       } satisfies LaneDetail);
     },
   },

@@ -1,14 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildAddress } from "../src/core/address";
 import { createAgent, grantLane, revokeAgent } from "../src/core/agents";
 import { d1Db, type Db } from "../src/core/db";
+import {
+  generateIngestKeyPair,
+  importIngestPrivateKey,
+  INGEST_KEY_ID_PATTERN,
+  INGEST_SECRET_PATTERN,
+  openSecret,
+  setIngestPublicKey,
+} from "../src/core/ingest-keys";
 import { createLane, getLaneBySlug, getLaneByToken } from "../src/core/lanes";
 import { insertMessage, markProcessed } from "../src/core/messages";
 import { logRejection } from "../src/core/rejections";
 import { createShare } from "../src/core/shares";
 import { AGENT_TOKEN_PATTERN } from "../src/core/tokens";
 import { ulid } from "../src/core/ulid";
-import { useAdminApi } from "./helpers/admin";
+import { adminEnv, useAdminApi } from "./helpers/admin";
+import { AUD, TEAM } from "./helpers/access";
 import { testEnv } from "./helpers/mail";
 import { freshDb } from "./helpers/db";
 
@@ -216,6 +225,82 @@ describe("agents", () => {
     expect((await api("GET", "/api/agents")).body[0].revoked_at).toEqual(expect.any(String));
     expect((await api("POST", "/api/agents/claude/revoke")).status).toBe(404);
     expect((await api("POST", "/api/agents/nobody/revoke")).status).toBe(404);
+  });
+});
+
+describe("ingest keys", () => {
+  async function setUp(db: Db) {
+    const pair = await generateIngestKeyPair();
+    await setIngestPublicKey(db, pair.publicJwk);
+    return pair;
+  }
+  const withIngest = (privateJwk: string) =>
+    adminEnv({ INGEST_HOSTNAME: "ingest.example.com", INGEST_ACCESS_AUD: AUD, ACCESS_TEAM_DOMAIN: TEAM, INGEST_PRIVATE_KEY: privateJwk });
+
+  it("shows a lane's ingest state: not set up, then set up but no endpoint, then the endpoint", async () => {
+    const db = await freshDb();
+    await createLane(db, { slug: "bills" });
+    expect((await api("GET", "/api/lanes/bills")).body.ingest).toEqual({ ready: false, endpoint: null, max_active_keys: 2, keys: [] });
+    const pair = await setUp(db);
+    expect((await api("GET", "/api/lanes/bills")).body.ingest).toMatchObject({ ready: true, endpoint: null });
+    const { body } = await api("GET", "/api/lanes/bills", undefined, withIngest(pair.privateJwk));
+    expect(body.ingest.endpoint).toBe("https://ingest.example.com/ingest/lanes/bills");
+  });
+
+  it("creates a key and returns its secret once, stored only sealed to the ingest key pair", async () => {
+    const db = await freshDb();
+    const lane = await createLane(db, { slug: "bills" });
+    const pair = await setUp(db);
+    const logged: string[] = [];
+    for (const level of ["log", "warn", "error"] as const) vi.spyOn(console, level).mockImplementation((...args) => void logged.push(args.join(" ")));
+
+    const { status, body, res } = await api("POST", "/api/lanes/bills/ingest-keys");
+    expect(status).toBe(201);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(body.key).toEqual({ id: expect.stringMatching(INGEST_KEY_ID_PATTERN), created_at: expect.any(String), last_used_at: null, revoked_at: null });
+    expect(body.secret).toMatch(INGEST_SECRET_PATTERN);
+    vi.restoreAllMocks();
+    expect(logged.join("\n")).not.toContain(body.secret);
+
+    const row = await db.first<{ secret_box: string }>("SELECT secret_box FROM ingest_keys WHERE id = ?", [body.key.id]);
+    expect(row!.secret_box).not.toContain(body.secret);
+    expect(await openSecret(await importIngestPrivateKey(pair.privateJwk), row!.secret_box, body.key.id, lane.id)).toBe(body.secret);
+
+    const detail = await api("GET", "/api/lanes/bills");
+    expect(detail.body.ingest.keys).toEqual([body.key]);
+    expect(JSON.stringify(detail.body)).not.toContain(body.secret);
+  });
+
+  it("refuses a key before set-up, for an unknown lane, or past two active keys", async () => {
+    const db = await freshDb();
+    await createLane(db, { slug: "bills" });
+    const early = await api("POST", "/api/lanes/bills/ingest-keys");
+    expect(early.status).toBe(400);
+    expect(early.body.error).toMatch(/ingest-keys init/);
+    await setUp(db);
+    expect((await api("POST", "/api/lanes/missing/ingest-keys")).status).toBe(404);
+    expect((await api("POST", "/api/lanes/bills/ingest-keys")).status).toBe(201);
+    expect((await api("POST", "/api/lanes/bills/ingest-keys")).status).toBe(201);
+    const third = await api("POST", "/api/lanes/bills/ingest-keys");
+    expect(third.status).toBe(400);
+    expect(third.body.error).toMatch(/at most 2 active keys/);
+    expect((await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM ingest_keys"))!.n).toBe(2);
+  });
+
+  it("revokes a key once, and only through its own lane", async () => {
+    const db = await freshDb();
+    await createLane(db, { slug: "bills" });
+    await createLane(db, { slug: "other" });
+    await setUp(db);
+    const { body } = await api("POST", "/api/lanes/bills/ingest-keys");
+    expect((await api("POST", `/api/lanes/other/ingest-keys/${body.key.id}/revoke`)).status).toBe(404);
+    expect((await api("POST", `/api/lanes/bills/ingest-keys/${body.key.id}/revoke`)).status).toBe(200);
+    expect((await api("POST", `/api/lanes/bills/ingest-keys/${body.key.id}/revoke`)).status).toBe(404);
+    expect((await api("POST", "/api/lanes/bills/ingest-keys/aik_aaaaaaaaaaaaaaaa/revoke")).status).toBe(404);
+    expect((await api("GET", "/api/lanes/bills")).body.ingest.keys[0].revoked_at).toEqual(expect.any(String));
+    // A revoked key frees its slot.
+    await api("POST", "/api/lanes/bills/ingest-keys");
+    expect((await api("POST", "/api/lanes/bills/ingest-keys")).status).toBe(201);
   });
 });
 

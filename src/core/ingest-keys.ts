@@ -159,9 +159,9 @@ export async function setIngestPublicKey(db: Db, publicJwk: string): Promise<voi
 }
 
 /** Creates a key for a lane and returns its secret. Only the encrypted box is stored, so this is the one chance to see it. */
-export async function createIngestKey(db: Db, laneId: string): Promise<{ id: string; secret: string }> {
+export async function createIngestKey(db: Db, laneId: string): Promise<{ id: string; secret: string; createdAt: string }> {
   const publicJwk = await getIngestPublicKey(db);
-  if (!publicJwk) throw new CoreError("Ingest is not set up: run `ingest-keys init` first");
+  if (!publicJwk) throw new CoreError("Ingest is not set up: run `npm run cli -- ingest-keys init` first");
   const active = await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM ingest_keys WHERE lane_id = ? AND revoked_at IS NULL", [laneId]);
   if ((active?.n ?? 0) >= MAX_ACTIVE_KEYS_PER_LANE) {
     throw new CoreError(`A lane can have at most ${MAX_ACTIVE_KEYS_PER_LANE} active keys: revoke one first`);
@@ -169,17 +169,23 @@ export async function createIngestKey(db: Db, laneId: string): Promise<{ id: str
   const id = `aik_${base32(randomBytes(10))}`;
   const secret = `ais_${base32(randomBytes(32))}`;
   const box = await sealSecret(publicJwk, id, laneId, secret);
-  await db.run("INSERT INTO ingest_keys (id, lane_id, secret_box, created_at) VALUES (?, ?, ?, ?)", [
-    id,
-    laneId,
-    box,
-    new Date().toISOString(),
-  ]);
-  return { id, secret };
+  const createdAt = new Date().toISOString();
+  // The limit is checked again in the insert itself, so two creates at once (a double click) cannot both pass it.
+  const inserted = await db.run(
+    `INSERT INTO ingest_keys (id, lane_id, secret_box, created_at)
+     SELECT ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM ingest_keys WHERE lane_id = ? AND revoked_at IS NULL) < ?`,
+    [id, laneId, box, createdAt, laneId, MAX_ACTIVE_KEYS_PER_LANE],
+  );
+  if (inserted.changes === 0) throw new CoreError(`A lane can have at most ${MAX_ACTIVE_KEYS_PER_LANE} active keys: revoke one first`);
+  return { id, secret, createdAt };
 }
 
-export async function listIngestKeys(db: Db): Promise<IngestKey[]> {
-  return (await db.all<IngestKeyRow>(`${SELECT} ORDER BY l.slug, k.created_at`)).map(fromRow);
+/** Every key, or one lane's. Never the sealed secrets. */
+export async function listIngestKeys(db: Db, laneId?: string): Promise<IngestKey[]> {
+  const rows = laneId
+    ? await db.all<IngestKeyRow>(`${SELECT} WHERE k.lane_id = ? ORDER BY k.created_at`, [laneId])
+    : await db.all<IngestKeyRow>(`${SELECT} ORDER BY l.slug, k.created_at`);
+  return rows.map(fromRow);
 }
 
 /** The key and its sealed secret, for the Worker. Revoked keys and keys of deleted lanes never match. */
@@ -193,10 +199,10 @@ export async function touchIngestKey(db: Db, id: string): Promise<void> {
   await db.run("UPDATE ingest_keys SET last_used_at = ? WHERE id = ?", [new Date().toISOString(), id]);
 }
 
-/** Revokes a key. Takes effect on the next request. */
-export async function revokeIngestKey(db: Db, id: string): Promise<IngestKey> {
+/** Revokes a key, optionally only if it belongs to the given lane. Takes effect on the next request. */
+export async function revokeIngestKey(db: Db, id: string, laneId?: string): Promise<IngestKey> {
   const row = await db.first<IngestKeyRow>(`${SELECT} WHERE k.id = ?`, [id]);
-  if (!row || row.revoked_at) throw new CoreError("Key not found or already revoked");
+  if (!row || row.revoked_at || (laneId !== undefined && row.lane_id !== laneId)) throw new CoreError("Key not found or already revoked");
   await db.run("UPDATE ingest_keys SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL", [new Date().toISOString(), id]);
   return fromRow(row);
 }

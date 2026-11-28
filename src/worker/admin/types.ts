@@ -126,6 +126,31 @@ export interface LaneDetail {
   shares: ShareView[];
   transform_failures: TransformFailureView[];
   rejections: RejectionView[];
+  ingest: LaneIngestView;
+}
+
+/** An HTTP ingest key. The secret is never part of it: it is returned once, by the create call. */
+export interface IngestKeyView {
+  id: string;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface LaneIngestView {
+  /** The ingest key pair exists (`ingest-keys init` has run), so keys can be created. */
+  ready: boolean;
+  /** Where a caller posts this lane's messages, or null while the deployment's ingest endpoint is not configured. */
+  endpoint: string | null;
+  max_active_keys: number;
+  /** Oldest first, revoked ones included. */
+  keys: IngestKeyView[];
+}
+
+export interface CreatedIngestKey {
+  key: IngestKeyView;
+  /** Only ever in this response: D1 holds it encrypted to a key only the ingest endpoint can use. */
+  secret: string;
 }
 
 export interface AgentView {

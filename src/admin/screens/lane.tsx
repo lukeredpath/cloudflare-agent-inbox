@@ -8,6 +8,7 @@ import { formatBytes, formatFull, formatWhen, plural, reasonLabel } from "../for
 import { Icon } from "../icons.tsx";
 import { navigate, to } from "../router.ts";
 import { copyText, toast } from "../toast.tsx";
+import { IngestKeysPanel, IngestSecretPanel } from "./lane-ingest.tsx";
 import {
   Empty,
   LaneStatusPill,
@@ -153,6 +154,7 @@ export function LaneScreen({ slug }: { slug: string }) {
           </>
         }
       />
+      <IngestSecretPanel slug={lane.slug} endpoint={data.ingest.endpoint} />
       <div class="grid-2">
         <div class="stack">
           <AddressPanel key={rotated ?? "masked"} slug={slug} masked={lane.address_masked} fresh={rotated} />
@@ -312,6 +314,8 @@ export function LaneScreen({ slug }: { slug: string }) {
               </div>
             )}
           </Panel>
+
+          <IngestKeysPanel slug={lane.slug} ingest={data.ingest} />
 
           <Panel title="Active share links" meta="Links are never shown here" flush={data.shares.length > 0}>
             {data.shares.length ? (

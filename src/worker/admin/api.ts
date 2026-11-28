@@ -4,13 +4,14 @@ import { logEvent } from "../log.ts";
 import type { AccessIdentity } from "./access.ts";
 import { fail, failureResponse } from "./http.ts";
 import { agentRoutes } from "./routes/agents.ts";
+import { ingestKeyRoutes } from "./routes/ingest-keys.ts";
 import { laneRoutes } from "./routes/lanes.ts";
 import { messageRoutes } from "./routes/messages.ts";
 import { rejectionRoutes } from "./routes/rejections.ts";
 import { sessionRoutes } from "./routes/session.ts";
 import type { Route } from "./routes/route.ts";
 
-const routes: Route[] = [...sessionRoutes, ...laneRoutes, ...agentRoutes, ...messageRoutes, ...rejectionRoutes];
+const routes: Route[] = [...sessionRoutes, ...laneRoutes, ...ingestKeyRoutes, ...agentRoutes, ...messageRoutes, ...rejectionRoutes];
 
 /**
  * Changes must be JSON sent from the admin app itself. A form on another site cannot send
