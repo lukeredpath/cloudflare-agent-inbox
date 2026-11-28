@@ -17,6 +17,10 @@ changes. Each one is listed here.
 - Per-lane ingest keys, at most two active per lane, managed with `ingest-keys init`,
   `create`, `list` and `revoke`. Secrets are shown once and stored encrypted to a key pair
   whose private half is a Worker secret (`INGEST_PRIVATE_KEY`). Deleting a lane revokes its keys.
+- Ingest keys in the admin interface: each lane's page lists its keys (created, last used,
+  revoked) and can create and revoke them. A new key's secret is shown once and kept only in
+  the page's memory. The CLI's `ingest-keys` commands still work; `ingest-keys init` stays
+  CLI-only because it sets a Worker secret.
 - A per-key rate limit (`INGEST_LIMITER`, 60 a minute) that counts only signed requests, and
   an `ingest` log event per request.
 - Optional build variables `AGENT_INBOX_INGEST_HOSTNAME` and `AGENT_INBOX_INGEST_ACCESS_AUD`,

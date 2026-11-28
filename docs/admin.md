@@ -12,6 +12,9 @@ configure it**. Nothing changes for a deployment that does not.
   and bulk paste), pause and resume, grant and ungrant agents, rotate the address, delete.
   The address is masked until you reveal it, and active share links are listed without the
   links themselves.
+- **Ingest keys** (on each lane): create and revoke the lane's [HTTP ingest](ingest.md) keys,
+  and see when each was last used. A new key's secret is shown once, kept only in memory
+  until you dismiss it.
 - **Messages:** filter by lane and status, search the loaded list, and open one (the subject
   is the link, with the sender beneath it) to see its envelope, attachments (with download)
   and transform errors. Unprocessed messages are marked, so they stand out; processed ones
@@ -22,8 +25,8 @@ configure it**. Nothing changes for a deployment that does not.
 - A command palette (`⌘K`), keyboard shortcuts (`?`), a skip link, light and dark themes,
   and a layout that works on a phone, where messages and lanes become cards.
 
-`secrets set` and `messages inject-test` stay in the CLI: setting a Worker secret needs a
-Cloudflare API token that the Worker should not hold.
+`secrets set`, `ingest-keys init` and `messages inject-test` stay in the CLI: setting a Worker
+secret needs a Cloudflare API token that the Worker should not hold.
 
 ## Handling untrusted content
 
@@ -36,8 +39,8 @@ them as hostile:
 - The API names every such field `untrusted_*`, the same rule as the agent-facing MCP.
 - Message bodies are never part of a list or detail response. A body is fetched only when
   you press "Show body".
-- Agent tokens and full lane addresses come back only from the request that creates or
-  reveals them, and are not stored in the browser.
+- Agent tokens, ingest key secrets and full lane addresses come back only from the request
+  that creates or reveals them, and are not stored in the browser.
 
 ## Put it behind Cloudflare Access
 
@@ -109,7 +112,9 @@ This runs the real Worker, including the real Access check, against a local D1 a
 synthetic data (`dev/seed.sql`). `src/dev/worker.ts` stands in for Cloudflare Access: it signs
 a token with a throwaway key for requests to `localhost` and serves the matching public key.
 It is only used by `wrangler.dev.jsonc` and is never part of a deployment. Attachment files
-are not stored locally, so downloads of the seeded attachments will not work.
+are not stored locally, so downloads of the seeded attachments will not work. The seed holds an
+ingest public key whose private half was thrown away, so ingest keys can be created and revoked
+but there is no local ingest endpoint to use them with.
 
 ### Regenerating the screenshots
 

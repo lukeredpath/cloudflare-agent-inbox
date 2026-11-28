@@ -30,9 +30,10 @@ belongs to that one lane.
 3. Deploy (this applies the migration that adds the key tables).
 4. Create the ingest key pair once: `npm run cli -- ingest-keys init`. The private key goes
    straight to the Worker as the `INGEST_PRIVATE_KEY` secret and is never printed.
-5. Create a key for each lane that should accept messages, in your own terminal:
-   `npm run cli -- ingest-keys create <lane>`. It prints the key id and secret **once**.
-   Store both with the caller, for example in a password manager and a Docker secret.
+5. Create a key for each lane that should accept messages, either on the lane's page in the
+   [admin interface](admin.md) (**Ingest keys**, **New key**) or in your own terminal with
+   `npm run cli -- ingest-keys create <lane>`. Either way the key id and secret are shown
+   **once**. Store both with the caller, for example in a password manager and a Docker secret.
 
 Until `INGEST_PRIVATE_KEY`, the team domain and the audience are all set, the ingest host
 answers 503 to everything.
@@ -42,15 +43,26 @@ answers 503 to everything.
 - A key belongs to one lane and can only add messages to it. It cannot read, list or touch
   anything else.
 - A lane can have two active keys at once, so a key can be replaced without downtime:
-  create the new one, switch the caller over, then `ingest-keys revoke <id>`.
-- `ingest-keys list` shows each key's id, lane, when it was created and when it was last used.
-  Secrets are never shown again.
+  create the new one, switch the caller over, then revoke the old one.
+- Keys can be managed in the admin interface or the CLI; both use the same storage.
+  - **Admin interface:** each lane's page has an **Ingest keys** panel listing the lane's keys
+    (when each was created and last used, and which are revoked), with **New key** and
+    **Revoke**. The panel also shows the lane's endpoint URL once ingest is configured. A new
+    key's secret appears in a panel at the top of the page until you hide it; it lives only in
+    the page's memory, so it is gone after a reload, and the API has no way to return it again.
+    Creating and revoking are ordinary admin changes: same-origin JSON behind Cloudflare
+    Access, logged by action name only, never with the key or secret.
+  - **CLI:** `ingest-keys create <lane>`, `ingest-keys list` (every lane) and
+    `ingest-keys revoke <id>`. `create` refuses to run with `--json` or piped output, so the
+    secret only ever reaches a terminal.
+- Secrets are never shown again after creation, by either.
 - Deleting a lane revokes its keys.
 
 HMAC needs the secret itself, so it cannot be stored as a hash. Each secret is encrypted
 (ECDH P-256, HKDF-SHA-256, AES-256-GCM) to the Worker's ingest key pair: the public key is
-kept in D1 so the CLI can create keys, and the private key is a Worker secret, so only the
-Worker can read a secret back. Neither the CLI nor anyone with read access to D1 can.
+kept in D1 so the admin interface and the CLI can create keys, and the private key is a Worker
+secret, so only the ingest endpoint can read a secret back. Neither the admin interface, the
+CLI nor anyone with read access to D1 can.
 `ingest-keys init --replace` makes a new key pair and revokes every existing key.
 
 ## The request
